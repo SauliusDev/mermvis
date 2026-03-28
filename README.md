@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/SauliusDev/mermvis/master/mermvis-banner.png" alt="Mermvis Banner" width="550" />
+  <img src="https://raw.githubusercontent.com/SauliusDev/mermvis/master/mermvis-banner.png" alt="Mermvis Banner" width="400" />
 </div>
 
 <br />
