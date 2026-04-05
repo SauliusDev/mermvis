@@ -3,6 +3,7 @@ import * as crypto from 'crypto'
 import * as fs from 'fs'
 import { getWebviewHtml } from '@tomjs/vite-plugin-vscode/webview'
 import type { HostToWebviewMessage, WebviewToHostMessage } from '../shared/types'
+import { detectDiagramType } from './diagramTypeDetector'
 
 export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = 'mermvis.editor'
@@ -27,6 +28,23 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
     token: vscode.CancellationToken
   ): void {
     if (token.isCancellationRequested) return
+
+    // Fallback: non-flowchart files open in VSCode's default text editor
+    if (detectDiagramType(document.getText()) === 'unknown') {
+      MermvisEditorProvider.outputChannel.appendLine(
+        `[INFO] Non-flowchart file detected, falling back to text editor: ${document.uri.fsPath}`
+      )
+      webviewPanel.dispose()
+      vscode.commands.executeCommand('vscode.openWith', document.uri, 'default').then(
+        undefined,
+        (err: unknown) => {
+          MermvisEditorProvider.outputChannel.appendLine(
+            `[ERROR] Failed to open fallback text editor: ${String(err)}`
+          )
+        }
+      )
+      return
+    }
 
     webviewPanel.webview.options = {
       enableScripts: true,
