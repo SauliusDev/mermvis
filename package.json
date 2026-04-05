@@ -1,0 +1,61 @@
+{
+  "name": "mermvis",
+  "version": "0.0.1",
+  "description": "Mermaid diagram visual editor for VS Code",
+  "main": "./out/extension.js",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": ["onCustomEditor:mermvis.editor"],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "mermvis.editor",
+        "displayName": "Mermvis Editor",
+        "selector": [{ "filenamePattern": "*.mmd" }],
+        "priority": "default"
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "concurrently -n ext,web \"node esbuild.mjs --watch\" \"vite\"",
+    "build": "node esbuild.mjs && vite build",
+    "lint": "eslint src",
+    "test:webview": "vitest run --config vitest.config.ts",
+    "test:unit": "vitest run --config vitest.config.host.ts",
+    "test:integration": "vscode-test"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@xyflow/react": "^12.0.0",
+    "zustand": "^5.0.0",
+    "@dagrejs/dagre": "^3.0.0",
+    "mermaid": "^11.13.0"
+  },
+  "devDependencies": {
+    "@tomjs/vite-plugin-vscode": "^7.1.1",
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^5.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "vitest": "^3.0.0",
+    "@vitest/ui": "^3.0.0",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "jsdom": "latest",
+    "jest-mock-vscode": "latest",
+    "@vscode/test-cli": "latest",
+    "@vscode/test-electron": "latest",
+    "mocha": "^10.0.0",
+    "@types/mocha": "latest",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/parser": "latest",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "esbuild": "latest",
+    "concurrently": "latest"
+  }
+}

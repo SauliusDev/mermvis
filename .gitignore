@@ -3,9 +3,15 @@ _blueprint/
 _bmad/
 _bmad-output/
 _notes/
+docs/
 
 # Cursor / Claude config
 .claude/
+.cursor/
+
+# Agent runtime state (outside .claude/ for autonomous write access)
+_mind/
+_imp/
 
 # Dependencies
 node_modules/
@@ -14,6 +20,7 @@ node_modules/
 out/
 dist/
 .next/
+.vscode-test/
 
 # Env
 .env
