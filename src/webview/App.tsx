@@ -1,26 +1,29 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { sendToHost, onHostMessage } from './vscode'
 import type { HostToWebviewMessage } from '../shared/types'
+import Canvas from './components/Canvas'
+import '@xyflow/react/dist/style.css'
+import './styles/variables.css'
+import './styles/base.css'
+import './styles/themes/dark.css'
 
 export default function App(): React.JSX.Element {
-  const [mmdContent, setMmdContent] = useState<string | null>(null)
-
   useEffect(() => {
     sendToHost({ type: 'READY', payload: {} })
 
     const cleanup = onHostMessage((msg: HostToWebviewMessage) => {
       switch (msg.type) {
         case 'LOAD':
-          setMmdContent(msg.payload.content)
+          // Story 2.1 — Zustand store will dispatch canvas state from this payload
           break
         case 'THEME_CHANGED':
-          // Story 12 — no-op
+          // Story 12.3 — adaptive theme activation
           break
         case 'EXTERNAL_FILE_CHANGE':
-          setMmdContent(msg.payload.content)
+          // Story 6 — bidirectional sync conflict resolution
           break
         case 'SAVE_RESULT':
-          // Story 8 — no-op
+          // Story 8 — save confirmation feedback
           break
         default: {
           const _exhaustive: never = msg
@@ -32,5 +35,5 @@ export default function App(): React.JSX.Element {
     return cleanup
   }, [])
 
-  return <div>Mermvis{mmdContent !== null ? ` (${mmdContent.length} chars)` : ''}</div>
+  return <Canvas />
 }

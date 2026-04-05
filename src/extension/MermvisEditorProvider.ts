@@ -148,7 +148,8 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
     const csp = [
       `default-src 'none'`,
       `script-src 'unsafe-inline' 'unsafe-eval' ${serverUrl}`,
-      `style-src 'unsafe-inline' ${serverUrl}`,
+      `style-src 'unsafe-inline' ${serverUrl} https://fonts.googleapis.com`,
+      `font-src https://fonts.gstatic.com`,
       `frame-src ${serverUrl}`,
       `connect-src ${serverUrl} ws: wss:`,
       `img-src vscode-resource: data: blob:`,
@@ -188,7 +189,8 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
     const csp = [
       `default-src 'none'`,
       `img-src ${webview.cspSource} data:`,
-      `style-src ${webview.cspSource} 'unsafe-inline'`,
+      `style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com`,
+      `font-src https://fonts.gstatic.com`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ')
     html = html.replace('<head>', `<head>\n  <meta http-equiv="Content-Security-Policy" content="${csp}">`)

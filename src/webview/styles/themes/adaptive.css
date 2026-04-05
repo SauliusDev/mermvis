@@ -1,0 +1,16 @@
+/* Adaptive theme — maps --vscode-* to --mv-* tokens
+ *
+ * Activated by App.tsx adding data-theme="vscode-adaptive" to :root
+ * when VS Code fires a theme-change event.
+ *
+ * Full implementation: Story 12.3 (adaptive-theme).
+ * This stub defines the remapping pattern for future reference.
+ */
+:root[data-theme="vscode-adaptive"] {
+  --mv-canvas-bg: var(--vscode-editor-background);
+  --mv-bg-surface: var(--vscode-editorGroupHeader-tabsBackground);
+  --mv-text-primary: var(--vscode-editor-foreground);
+  --mv-text-secondary: var(--vscode-descriptionForeground);
+  --mv-accent: var(--vscode-focusBorder);
+  --mv-border: var(--vscode-panel-border);
+}

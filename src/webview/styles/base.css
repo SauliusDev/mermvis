@@ -1,0 +1,56 @@
+/* ── Box-sizing reset ────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Full-bleed root ─────────────────────────────────────────────────────── */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--mv-canvas-bg);
+  color: var(--mv-text-primary);
+  font-family: var(--mv-font-ui);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Canvas container ────────────────────────────────────────────────────── */
+.canvas-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── React Flow overrides ────────────────────────────────────────────────── */
+.react-flow {
+  background: var(--mv-canvas-bg);
+}
+
+/* Not relevant inside VS Code extension */
+.react-flow__attribution {
+  display: none;
+}
+
+/* ── Glass-morphism pattern (used by Sidebar, Palette, MiscBar, etc.) ────── */
+.glass {
+  background: rgba(25, 26, 27, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--mv-border);
+  box-shadow: var(--mv-shadow-bar);
+}
+
+.glass--heavy {
+  background: rgba(25, 26, 27, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
