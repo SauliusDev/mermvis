@@ -1,0 +1,141 @@
+import { describe, it, expect, vi } from 'vitest'
+import type { Edge, Node } from '@xyflow/react'
+
+// vi.mock() is hoisted by Vitest — must appear before source imports.
+// This activates src/webview/__mocks__/zustand.ts which resets ALL stores in afterEach.
+vi.mock('zustand')
+
+import { useStore, MAX_HISTORY } from './store'
+import type { FlowEdgeData, FlowNodeData } from './store'
+
+function makeNode(id: string, overrides: Partial<Node<FlowNodeData>> = {}): Node<FlowNodeData> {
+  return {
+    id,
+    position: { x: 0, y: 0 },
+    data: { label: `Node ${id}`, shape: 'rectangle' },
+    type: 'default',
+    ...overrides,
+  }
+}
+
+describe('useStore', () => {
+  describe('addNode', () => {
+    it('appends a node to nodes array', () => {
+      useStore.getState().addNode(makeNode('a'))
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().nodes[0].id).toBe('a')
+    })
+
+    it('creates one history entry', () => {
+      useStore.getState().addNode(makeNode('a'))
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+  })
+
+  describe('removeNode', () => {
+    it('removes the node with the given id', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().removeNode('a')
+      expect(useStore.getState().nodes).toHaveLength(0)
+    })
+
+    it('removes edges connected to the deleted node', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      // Set edges directly — no addEdge action yet (Story 3.x)
+      useStore.setState({
+        edges: [{ id: 'e1', source: 'a', target: 'b' }] as Edge<FlowEdgeData>[],
+      })
+      useStore.getState().removeNode('a')
+      expect(useStore.getState().edges).toHaveLength(0)
+    })
+
+    it('does not create a history entry when id is not found', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().removeNode('nonexistent')
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
+  describe('updateNodeLabel', () => {
+    it('updates the label for the matching node', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().updateNodeLabel('a', 'Updated')
+      expect(useStore.getState().nodes[0].data.label).toBe('Updated')
+    })
+
+    it('does not create a history entry when label is unchanged', () => {
+      useStore.getState().addNode(makeNode('a'))  // label is 'Node a'
+      const before = useStore.getState().history.past.length
+      useStore.getState().updateNodeLabel('a', 'Node a')  // same label
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
+  describe('moveNodes', () => {
+    it('updates positions for matching nodes', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().moveNodes([{ id: 'a', position: { x: 100, y: 200 } }])
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 100, y: 200 })
+    })
+
+    it('does not create a history entry when positions are unchanged', () => {
+      useStore.getState().addNode(makeNode('a'))  // position { x: 0, y: 0 }
+      const before = useStore.getState().history.past.length
+      useStore.getState().moveNodes([{ id: 'a', position: { x: 0, y: 0 } }])
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
+  describe('undo', () => {
+    it('restores the previous state', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(0)
+    })
+
+    it('moves the current state to history.future', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      expect(useStore.getState().history.future).toHaveLength(1)
+    })
+
+    it('does nothing when history.past is empty', () => {
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(0)
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
+  describe('redo', () => {
+    it('re-applies the undone state', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      useStore.getState().redo()
+      expect(useStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('clears the re-applied snapshot from history.future', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      useStore.getState().redo()
+      expect(useStore.getState().history.future).toHaveLength(0)
+    })
+
+    it('does nothing when history.future is empty', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().redo()
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().history.future).toHaveLength(0)
+    })
+  })
+
+  describe('MAX_HISTORY cap', () => {
+    it('history.past never exceeds MAX_HISTORY entries', () => {
+      for (let i = 0; i < 105; i++) {
+        useStore.getState().addNode(makeNode(`n${i}`))
+      }
+      expect(useStore.getState().history.past.length).toBeLessThanOrEqual(MAX_HISTORY)
+    })
+  })
+})

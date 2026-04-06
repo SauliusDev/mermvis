@@ -14,7 +14,7 @@ export default function App(): React.JSX.Element {
     const cleanup = onHostMessage((msg: HostToWebviewMessage) => {
       switch (msg.type) {
         case 'LOAD':
-          // Story 2.1 — Zustand store will dispatch canvas state from this payload
+          // Story 2.7 — call parseMermaidFlowchart(msg.payload.content) and dispatch nodes/edges via a future setCanvasState() action
           break
         case 'THEME_CHANGED':
           // Story 12.3 — adaptive theme activation

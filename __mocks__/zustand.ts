@@ -2,11 +2,8 @@
  * Zustand test mock — replaces `create` with a version that tracks all store
  * instances and resets them to their initial state after each test.
  *
- * NOTE: For Vitest to resolve this file as a manual mock for the `zustand`
- * node_module, `vi.mock('zustand')` requires the mock to be in
- * `<project-root>/__mocks__/zustand.ts` (adjacent to node_modules).
- * This file at `src/webview/__mocks__/zustand.ts` is NOT auto-resolved by
- * Vitest for node_module mocks. The canonical mock is at `__mocks__/zustand.ts`.
+ * Activated by `vi.mock('zustand')` in a test file. Vitest resolves this file
+ * from `<project-root>/__mocks__/zustand.ts` (adjacent to node_modules).
  *
  * Supports both Zustand v5 forms:
  *   - Direct:  create<T>(initializer)
@@ -52,8 +49,10 @@ export function create<T>(initializer: StateCreator<T, [], []>): UseBoundStore<S
 export function create<T>(): (initializer: StateCreator<T, [], []>) => UseBoundStore<StoreApi<T>>
 export function create<T>(initializer?: StateCreator<T, [], []>) {
   if (initializer === undefined) {
+    // Curried form: create<T>() → returns a function that takes the initializer
     return (fn: StateCreator<T, [], []>) => registerStore(createStore(fn))
   }
+  // Direct form: create<T>(initializer)
   return registerStore(createStore(initializer))
 }
 
