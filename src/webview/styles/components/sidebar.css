@@ -1,0 +1,33 @@
+/* ── Placeholder sidebar — Epic 5 (Story 5-1) builds the full CanvasSidebar ── */
+.canvas-sidebar {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--mv-z-sidebar);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.canvas-sidebar__btn {
+  width: var(--mv-sidebar-btn-size);
+  height: var(--mv-sidebar-btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(25, 26, 27, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-r-sm);
+  color: var(--mv-text-primary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--mv-shadow-bar);
+  transition: background 0.12s ease;
+}
+
+.canvas-sidebar__btn:hover {
+  background: var(--mv-bg-hover);
+}

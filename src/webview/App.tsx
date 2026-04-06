@@ -7,6 +7,7 @@ import './styles/variables.css'
 import './styles/base.css'
 import './styles/themes/dark.css'
 import './styles/components/node.css'
+import './styles/components/sidebar.css'
 
 export default function App(): React.JSX.Element {
   useEffect(() => {

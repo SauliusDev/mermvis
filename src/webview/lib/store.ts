@@ -51,6 +51,7 @@ interface StoreState {
   }
   addNode: (node: Node<FlowNodeData>) => void
   removeNode: (id: string) => void
+  applyFlowChanges: (nodes: Node<FlowNodeData>[]) => void
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   undo: () => void
@@ -117,6 +118,10 @@ export const useStore = create<StoreState>()((set, get) => ({
       nodes: nodes.map(n => n.id === id ? { ...n, data: { ...n.data, label } } : n),
       edges,
     })
+  },
+
+  applyFlowChanges: (nodes) => {
+    set(state => ({ ...state, nodes }))
   },
 
   moveNodes: (updates) => {
