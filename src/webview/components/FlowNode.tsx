@@ -1,7 +1,9 @@
 import React from 'react'
-import { Handle, Position } from '@xyflow/react'
+import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps, Node } from '@xyflow/react'
 import type { FlowNodeData, NodeShape } from '@/lib/store'
+import MermvisToolbar from '@/components/NodeToolbar'
+import ConnectArrows from '@/components/ConnectArrows'
 
 // ── SVG constants ─────────────────────────────────────────────────────────────
 
@@ -132,6 +134,9 @@ export default function FlowNode({
         selected ? 'flow-node--selected' : '',
       ].filter(Boolean).join(' ')}
     >
+      <NodeResizer isVisible={selected} minWidth={60} minHeight={30} />
+      <MermvisToolbar isVisible={selected} />
+      <ConnectArrows isVisible={selected ?? false} nodeId={id} />
       {renderShape()}
       <div className="flow-node__label">{label}</div>
       <Handle

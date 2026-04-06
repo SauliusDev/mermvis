@@ -72,6 +72,65 @@
   stroke: var(--mv-node-selected);
 }
 
+.flow-node--selected {
+  box-shadow: 0 0 0 1px var(--mv-node-selected), 0 0 8px var(--mv-accent-mid);
+}
+
+/* ── Dimming (single selection active; node is not selected or connected) ──── */
+.react-flow__node.dimmed .flow-node {
+  opacity: var(--mv-dimmed-opacity);
+  transition: opacity 0.12s ease;
+}
+
+/* ── NodeResizer handle and line overrides ─────────────────────────────────── */
+.react-flow__resize-control.handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--mv-bg-surface) !important;
+  border: 1.5px solid var(--mv-accent) !important;
+  border-radius: 2px !important;
+}
+
+.react-flow__resize-control.line {
+  border-color: var(--mv-accent) !important;
+}
+
+/* ── Connect Arrows (placeholder — Story 3.3 adds spawn behavior) ─────────── */
+.connect-arrows {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.connect-arrow {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mv-bg-elevated);
+  border: 1px solid var(--mv-accent);
+  border-radius: 50%;
+  color: var(--mv-accent);
+  cursor: pointer;
+  font-size: 8px;
+  line-height: 1;
+  pointer-events: all;
+  z-index: var(--mv-z-handles);
+  padding: 0;
+  transition: background 0.12s ease;
+}
+
+.connect-arrow:hover {
+  background: var(--mv-accent-dim);
+}
+
+.connect-arrow--top    { top: -14px;    left: 50%; transform: translateX(-50%); }
+.connect-arrow--right  { right: -14px;  top: 50%;  transform: translateY(-50%); }
+.connect-arrow--bottom { bottom: -14px; left: 50%; transform: translateX(-50%); }
+.connect-arrow--left   { left: -14px;   top: 50%;  transform: translateY(-50%); }
+
 /* ── Connection handles ────────────────────────────────────────────────────── */
 .flow-node__handle {
   width: 10px !important;

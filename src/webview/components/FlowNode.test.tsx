@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
@@ -13,6 +14,10 @@ vi.mock('@xyflow/react', () => ({
     Bottom: 'bottom',
     Left: 'left',
   },
+  NodeResizer: ({ isVisible }: { isVisible?: boolean }) =>
+    isVisible ? <div data-testid="node-resizer" /> : null,
+  NodeToolbar: ({ isVisible, children }: { isVisible?: boolean; children?: React.ReactNode }) =>
+    isVisible ? <div data-testid="rf-node-toolbar">{children}</div> : null,
 }))
 
 import FlowNode from './FlowNode'
@@ -90,6 +95,26 @@ describe('FlowNode', () => {
         <FlowNode {...makeNodeProps('rectangle', 'Test', false)} />,
       )
       expect(container.firstElementChild?.className).not.toContain('flow-node--selected')
+    })
+
+    it('renders NodeResizer when selected is true', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', true)} />)
+      expect(container.querySelector('[data-testid="node-resizer"]')).not.toBeNull()
+    })
+
+    it('does not render NodeResizer when selected is false', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', false)} />)
+      expect(container.querySelector('[data-testid="node-resizer"]')).toBeNull()
+    })
+
+    it('renders ConnectArrows when selected is true', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', true)} />)
+      expect(container.querySelector('.connect-arrows')).not.toBeNull()
+    })
+
+    it('does not render ConnectArrows when selected is false', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', false)} />)
+      expect(container.querySelector('.connect-arrows')).toBeNull()
     })
   })
 

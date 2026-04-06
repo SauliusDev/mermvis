@@ -52,6 +52,7 @@ interface StoreState {
   addNode: (node: Node<FlowNodeData>) => void
   removeNode: (id: string) => void
   applyFlowChanges: (nodes: Node<FlowNodeData>[]) => void
+  deselectAll: () => void
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   undo: () => void
@@ -122,6 +123,15 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   applyFlowChanges: (nodes) => {
     set(state => ({ ...state, nodes }))
+  },
+
+  deselectAll: () => {
+    const { nodes } = get()
+    if (!nodes.some(n => n.selected)) return
+    set(state => ({
+      ...state,
+      nodes: state.nodes.map(n => n.selected ? { ...n, selected: false } : n),
+    }))
   },
 
   moveNodes: (updates) => {

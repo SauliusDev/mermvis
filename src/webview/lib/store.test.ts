@@ -138,4 +138,28 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBeLessThanOrEqual(MAX_HISTORY)
     })
   })
+
+  describe('deselectAll', () => {
+    it('clears selected state on all selected nodes', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.setState({ nodes: [{ ...useStore.getState().nodes[0], selected: true }] })
+      useStore.getState().deselectAll()
+      expect(useStore.getState().nodes[0].selected).toBeFalsy()
+    })
+
+    it('is a no-op when no nodes are selected', () => {
+      useStore.getState().addNode(makeNode('a'))
+      const nodesBefore = useStore.getState().nodes
+      useStore.getState().deselectAll()
+      expect(useStore.getState().nodes).toBe(nodesBefore)
+    })
+
+    it('does not create a history entry', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.setState({ nodes: [{ ...useStore.getState().nodes[0], selected: true }] })
+      const historyLengthBefore = useStore.getState().history.past.length
+      useStore.getState().deselectAll()
+      expect(useStore.getState().history.past.length).toBe(historyLengthBefore)
+    })
+  })
 })
