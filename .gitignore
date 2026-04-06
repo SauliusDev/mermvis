@@ -5,9 +5,13 @@ _bmad-output/
 _notes/
 docs/
 
-# Cursor / Claude config
+# Coding agents 
 .claude/
 .cursor/
+.gemini/
+.agent/
+.vscode/
+.github/
 
 # Agent runtime state (outside .claude/ for autonomous write access)
 _mind/

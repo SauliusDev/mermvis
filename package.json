@@ -21,7 +21,7 @@
     "dev": "concurrently -n ext,web \"node esbuild.mjs --watch\" \"vite\"",
     "build": "node esbuild.mjs && vite build",
     "lint": "eslint src",
-    "test:webview": "vitest run --config vitest.config.ts",
+    "test:webview": "vitest run --config vitest.config.mts",
     "test:unit": "vitest run --config vitest.config.host.ts",
     "test:integration": "vscode-test"
   },

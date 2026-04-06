@@ -8,11 +8,13 @@ import { detectDiagramType } from './diagramTypeDetector'
 export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = 'mermvis.editor'
 
-  private static outputChannel: vscode.OutputChannel
+  private static outputChannel: vscode.OutputChannel | undefined
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
-    MermvisEditorProvider.outputChannel = vscode.window.createOutputChannel('Mermvis')
-    context.subscriptions.push(MermvisEditorProvider.outputChannel)
+    if (!MermvisEditorProvider.outputChannel) {
+      MermvisEditorProvider.outputChannel = vscode.window.createOutputChannel('Mermvis')
+      context.subscriptions.push(MermvisEditorProvider.outputChannel)
+    }
     return vscode.window.registerCustomEditorProvider(
       MermvisEditorProvider.viewType,
       new MermvisEditorProvider(context),
@@ -31,14 +33,14 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Fallback: non-flowchart files open in VSCode's default text editor
     if (detectDiagramType(document.getText()) === 'unknown') {
-      MermvisEditorProvider.outputChannel.appendLine(
+      MermvisEditorProvider.outputChannel?.appendLine(
         `[INFO] Non-flowchart file detected, falling back to text editor: ${document.uri.fsPath}`
       )
       webviewPanel.dispose()
       vscode.commands.executeCommand('vscode.openWith', document.uri, 'default').then(
         undefined,
         (err: unknown) => {
-          MermvisEditorProvider.outputChannel.appendLine(
+          MermvisEditorProvider.outputChannel?.appendLine(
             `[ERROR] Failed to open fallback text editor: ${String(err)}`
           )
         }
@@ -117,9 +119,9 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
       }
       case 'LOG': {
         const { level, message } = msg.payload
-        MermvisEditorProvider.outputChannel.appendLine(`[${level.toUpperCase()}] ${message}`)
+        MermvisEditorProvider.outputChannel?.appendLine(`[${level.toUpperCase()}] ${message}`)
         if (level === 'error') {
-          MermvisEditorProvider.outputChannel.show(true)
+          MermvisEditorProvider.outputChannel?.show(true)
         }
         break
       }
@@ -168,7 +170,7 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
         'utf-8'
       )
     } catch (err) {
-      MermvisEditorProvider.outputChannel.appendLine(`[ERROR] Failed to read webview index.html: ${String(err)}`)
+      MermvisEditorProvider.outputChannel?.appendLine(`[ERROR] Failed to read webview index.html: ${String(err)}`)
       return `<!DOCTYPE html><html><body><p>Mermvis: webview not built. Run <code>pnpm build</code>.</p></body></html>`
     }
 
