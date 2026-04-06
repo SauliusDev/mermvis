@@ -1,6 +1,13 @@
 import React from 'react'
 import { ReactFlow, Background, BackgroundVariant } from '@xyflow/react'
 import { useStore } from '@/lib/store'
+import FlowNode from '@/components/FlowNode'
+
+// CRITICAL: nodeTypes must be at module scope — never inside the component.
+// React Flow compares nodeTypes by reference on every render. If defined inside
+// the component, it creates a new object each render, causing all nodes to
+// remount and flicker. Module-scope definition = stable reference.
+const nodeTypes = { flowNode: FlowNode }
 
 export default function Canvas(): React.JSX.Element {
   const nodes = useStore(s => s.nodes)
@@ -8,7 +15,12 @@ export default function Canvas(): React.JSX.Element {
 
   return (
     <div className="canvas-container">
-      <ReactFlow nodes={nodes} edges={edges} colorMode="dark">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        colorMode="dark"
+      >
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}

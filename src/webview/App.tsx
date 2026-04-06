@@ -6,6 +6,7 @@ import '@xyflow/react/dist/style.css'
 import './styles/variables.css'
 import './styles/base.css'
 import './styles/themes/dark.css'
+import './styles/components/node.css'
 
 export default function App(): React.JSX.Element {
   useEffect(() => {

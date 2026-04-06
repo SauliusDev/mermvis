@@ -1,0 +1,94 @@
+/* ── Base node layout ──────────────────────────────────────────────────────── */
+.flow-node {
+  position: relative;
+  min-width: 120px;
+  min-height: 40px;
+  cursor: grab;
+}
+
+.flow-node:active {
+  cursor: grabbing;
+}
+
+/* ── SVG shape background ──────────────────────────────────────────────────── */
+.flow-node__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* ── Label overlay ─────────────────────────────────────────────────────────── */
+.flow-node__label {
+  position: relative;
+  z-index: 1;
+  padding: 8px 16px;
+  font-family: var(--mv-font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mv-node-text);
+  text-align: center;
+  line-height: 1.4;
+  pointer-events: none;
+  word-break: break-word;
+}
+
+/* ── Diamond: square container, smaller label ─────────────────────────────── */
+.flow-node--diamond {
+  min-width: 80px;
+  min-height: 80px;
+  aspect-ratio: 1;
+}
+
+.flow-node--diamond .flow-node__label {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 4px 8px;
+}
+
+/* ── Circle: square container ─────────────────────────────────────────────── */
+.flow-node--circle {
+  min-width: 70px;
+  min-height: 70px;
+  aspect-ratio: 1;
+}
+
+.flow-node--circle .flow-node__label {
+  padding: 4px 8px;
+}
+
+/* ── Cylinder: taller to show top/bottom caps ─────────────────────────────── */
+.flow-node--cylinder {
+  min-height: 60px;
+}
+
+/* ── Selection state ───────────────────────────────────────────────────────── */
+.flow-node--selected .flow-node__svg rect,
+.flow-node--selected .flow-node__svg polygon,
+.flow-node--selected .flow-node__svg ellipse,
+.flow-node--selected .flow-node__svg circle {
+  stroke: var(--mv-node-selected);
+}
+
+/* ── Connection handles ────────────────────────────────────────────────────── */
+.flow-node__handle {
+  width: 10px !important;
+  height: 10px !important;
+  background: var(--mv-handle-color) !important;
+  border: 2px solid var(--mv-canvas-bg) !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+/* Show handles on node hover */
+.react-flow__node:hover .flow-node__handle {
+  opacity: 1;
+}
+
+/* Keep handles visible when node is selected */
+.react-flow__node.selected .flow-node__handle {
+  opacity: 1;
+}
