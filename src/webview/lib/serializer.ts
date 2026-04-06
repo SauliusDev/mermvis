@@ -1,0 +1,43 @@
+import type { Node, Edge } from '@xyflow/react'
+import type { FlowNodeData, FlowEdgeData } from '@/lib/store'
+import { shapeTemplates, edgeConnectors } from '@/lib/constants'
+
+export interface SerializeInput {
+  nodes: Node<FlowNodeData>[]
+  edges: Edge<FlowEdgeData>[]
+  passthroughLines?: string[]
+}
+
+export function serialize(input: SerializeInput): string {
+  const lines: string[] = ['flowchart TD']
+
+  for (const node of input.nodes) {
+    const { id, data: { label, shape } } = node
+    if (shape === 'subgraph') {
+      lines.push(`  subgraph ${id} [${label}]`)
+      lines.push('  end')
+    } else {
+      const { open, close } = shapeTemplates[shape]
+      lines.push(`  ${id}${open}${label}${close}`)
+    }
+  }
+
+  for (const edge of input.edges) {
+    const { source, target, data } = edge
+    const connector = edgeConnectors[data?.style ?? 'arrow']
+    const label = data?.label
+    if (label) {
+      lines.push(`  ${source} ${connector}|${label}| ${target}`)
+    } else {
+      lines.push(`  ${source} ${connector} ${target}`)
+    }
+  }
+
+  if (input.passthroughLines) {
+    for (const line of input.passthroughLines) {
+      lines.push(`  ${line}`)
+    }
+  }
+
+  return lines.join('\n') + '\n'
+}
