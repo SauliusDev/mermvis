@@ -2,8 +2,9 @@ import React, { useMemo, useEffect } from 'react'
 import {
   ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode,
 } from '@xyflow/react'
-import type { NodeChange } from '@xyflow/react'
-import { useStore } from '@/lib/store'
+import type { NodeChange, Node } from '@xyflow/react'
+import { useStore, GRID_SNAP } from '@/lib/store'
+import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
 import CanvasSidebar from '@/components/CanvasSidebar'
 import { computeDimmedNodeIds } from '@/lib/selection'
@@ -19,6 +20,7 @@ export default function Canvas(): React.JSX.Element {
   const edges = useStore(s => s.edges)
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
   const deselectAll = useStore(s => s.deselectAll)
+  const moveNodes = useStore(s => s.moveNodes)
 
   // Compute dimmed node IDs — pure derivation, not stored
   const dimmedNodeIds = useMemo(
@@ -35,6 +37,14 @@ export default function Canvas(): React.JSX.Element {
         : nodes,
     [nodes, dimmedNodeIds]
   )
+
+  function handleNodeDragStop(
+    _event: React.MouseEvent,
+    _node: Node<FlowNodeData>,
+    draggedNodes: Node<FlowNodeData>[]
+  ): void {
+    moveNodes(draggedNodes.map(n => ({ id: n.id, position: n.position })))
+  }
 
   function handleNodesChange(changes: NodeChange[]): void {
     // Exclude 'remove' changes — node deletion with undo history is implemented in Story 2.6.
@@ -62,6 +72,9 @@ export default function Canvas(): React.JSX.Element {
         edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
+        onNodeDragStop={handleNodeDragStop}
+        snapToGrid={true}
+        snapGrid={[GRID_SNAP, GRID_SNAP] as [number, number]}
         colorMode="dark"
         multiSelectionKeyCode="Shift"
         selectionOnDrag={true}
@@ -71,7 +84,7 @@ export default function Canvas(): React.JSX.Element {
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={24}
+          gap={GRID_SNAP}
           size={1}
           color="rgba(255,255,255,0.055)"
         />

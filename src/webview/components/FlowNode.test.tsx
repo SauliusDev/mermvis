@@ -2,6 +2,12 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
+// vi.mock('zustand') must appear before source imports that use it.
+vi.mock('zustand')
+
+// Module-level captured onResizeEnd
+let capturedOnResizeEnd: ((event: unknown, params: unknown) => void) | undefined
+
 // Mock @xyflow/react BEFORE any imports that use it.
 // Handle renders as a plain div so we can query for flow-node__handle class.
 vi.mock('@xyflow/react', () => ({
@@ -14,13 +20,16 @@ vi.mock('@xyflow/react', () => ({
     Bottom: 'bottom',
     Left: 'left',
   },
-  NodeResizer: ({ isVisible }: { isVisible?: boolean }) =>
-    isVisible ? <div data-testid="node-resizer" /> : null,
+  NodeResizer: ({ isVisible, onResizeEnd }: { isVisible?: boolean; onResizeEnd?: (...args: unknown[]) => void }) => {
+    capturedOnResizeEnd = onResizeEnd
+    return isVisible ? <div data-testid="node-resizer" /> : null
+  },
   NodeToolbar: ({ isVisible, children }: { isVisible?: boolean; children?: React.ReactNode }) =>
     isVisible ? <div data-testid="rf-node-toolbar">{children}</div> : null,
 }))
 
 import FlowNode from './FlowNode'
+import { useStore } from '@/lib/store'
 import { shapeTemplates, edgeConnectors } from '@/lib/constants'
 import type { NodeShape, EdgeStyle } from '@/lib/store'
 
@@ -51,6 +60,7 @@ function makeNodeProps(
 
 describe('FlowNode', () => {
   beforeEach(() => {
+    capturedOnResizeEnd = undefined
     mockReactFlow()
   })
 
@@ -147,6 +157,22 @@ describe('FlowNode', () => {
         expect(container.querySelector('svg.flow-node__svg')).not.toBeNull()
         unmount()
       })
+    })
+  })
+
+  describe('resize end', () => {
+    it('calls resizeNode on resize end', () => {
+      const node = {
+        id: 'node1',
+        position: { x: 0, y: 0 },
+        data: { label: 'Node node1', shape: 'rectangle' as NodeShape },
+        type: 'default',
+      }
+      useStore.setState({ nodes: [node] })
+      render(<FlowNode {...makeNodeProps('rectangle', 'Test', true)} />)
+      capturedOnResizeEnd?.({}, { x: 0, y: 0, width: 200, height: 80, direction: [1, 0] })
+      expect(useStore.getState().nodes[0].width).toBe(200)
+      expect(useStore.getState().nodes[0].height).toBe(80)
     })
   })
 })

@@ -5,7 +5,7 @@ import type { Edge, Node } from '@xyflow/react'
 // This activates src/webview/__mocks__/zustand.ts which resets ALL stores in afterEach.
 vi.mock('zustand')
 
-import { useStore, MAX_HISTORY } from './store'
+import { useStore, MAX_HISTORY, GRID_SNAP } from './store'
 import type { FlowEdgeData, FlowNodeData } from './store'
 
 function makeNode(id: string, overrides: Partial<Node<FlowNodeData>> = {}): Node<FlowNodeData> {
@@ -127,6 +127,56 @@ describe('useStore', () => {
       useStore.getState().redo()
       expect(useStore.getState().nodes).toHaveLength(1)
       expect(useStore.getState().history.future).toHaveLength(0)
+    })
+  })
+
+  describe('resizeNode', () => {
+    it('updates width and height for matching node', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().resizeNode('a', { width: 200, height: 80 })
+      expect(useStore.getState().nodes[0].width).toBe(200)
+      expect(useStore.getState().nodes[0].height).toBe(80)
+    })
+
+    it('updates position when position argument provided', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().resizeNode('a', { width: 200, height: 80 }, { x: 10, y: 20 })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 10, y: 20 })
+    })
+
+    it('creates a history entry', () => {
+      useStore.getState().addNode(makeNode('a'))
+      const before = useStore.getState().history.past.length
+      useStore.getState().resizeNode('a', { width: 200, height: 80 })
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+    })
+
+    it('does not create a history entry when id not found', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().resizeNode('nonexistent', { width: 200, height: 80 })
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+
+    it('does not create a history entry when dimensions are unchanged', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().resizeNode('a', { width: 200, height: 80 })
+      const before = useStore.getState().history.past.length
+      useStore.getState().resizeNode('a', { width: 200, height: 80 })
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+
+    it('creates a history entry when only position changes', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().resizeNode('a', { width: 200, height: 80 })
+      const before = useStore.getState().history.past.length
+      useStore.getState().resizeNode('a', { width: 200, height: 80 }, { x: 10, y: 20 })
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+    })
+  })
+
+  describe('GRID_SNAP constant', () => {
+    it('equals 24 (matches Background dot grid gap)', () => {
+      expect(GRID_SNAP).toBe(24)
     })
   })
 

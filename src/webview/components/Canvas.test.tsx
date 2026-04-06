@@ -1,12 +1,26 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 
 vi.mock('zustand')
 
+// Module-level captured props (accessible from tests)
+let capturedSnapToGrid: boolean | undefined
+let capturedSnapGrid: [number, number] | undefined
+let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
+
 vi.mock('@xyflow/react', () => ({
-  ReactFlow: ({ children }: { children?: React.ReactNode }) =>
-    React.createElement('div', { 'data-testid': 'react-flow-mock' }, children),
+  ReactFlow: (props: {
+    snapToGrid?: boolean
+    snapGrid?: [number, number]
+    onNodeDragStop?: (...args: unknown[]) => void
+    children?: React.ReactNode
+  }) => {
+    capturedSnapToGrid = props.snapToGrid
+    capturedSnapGrid = props.snapGrid
+    capturedOnNodeDragStop = props.onNodeDragStop
+    return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
+  },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
   BackgroundVariant: { Dots: 'dots', Lines: 'lines', Cross: 'cross' },
   SelectionMode: { Partial: 'partial', Full: 'full' },
@@ -22,6 +36,12 @@ import { mockReactFlow } from '../setupTests'
 mockReactFlow()
 
 describe('Canvas', () => {
+  beforeEach(() => {
+    capturedSnapToGrid = undefined
+    capturedSnapGrid = undefined
+    capturedOnNodeDragStop = undefined
+  })
+
   it('renders canvas-container div', () => {
     const { container } = render(<Canvas />)
     expect(container.querySelector('.canvas-container')).toBeTruthy()
@@ -48,5 +68,29 @@ describe('Canvas', () => {
     })
 
     expect(useStore.getState().nodes[0].selected).toBeFalsy()
+  })
+
+  it('passes snapToGrid=true and snapGrid=[24,24] to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedSnapToGrid).toBe(true)
+    expect(capturedSnapGrid).toEqual([24, 24])
+  })
+
+  it('onNodeDragStop calls moveNodes with final node positions', () => {
+    const node: Node<FlowNodeData> = {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: { label: 'A', shape: 'rectangle' },
+      type: 'flowNode',
+    }
+    useStore.setState({ nodes: [node] })
+    render(<Canvas />)
+
+    const draggedNode = { ...node, position: { x: 48, y: 72 } }
+    act(() => {
+      capturedOnNodeDragStop?.({}, draggedNode, [draggedNode])
+    })
+
+    expect(useStore.getState().nodes[0].position).toEqual({ x: 48, y: 72 })
   })
 })

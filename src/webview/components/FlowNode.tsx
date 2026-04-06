@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Handle, Position, NodeResizer } from '@xyflow/react'
-import type { NodeProps, Node } from '@xyflow/react'
+import type { NodeProps, Node, ResizeParams } from '@xyflow/react'
 import type { FlowNodeData, NodeShape } from '@/lib/store'
+import { useStore } from '@/lib/store'
 import MermvisToolbar from '@/components/NodeToolbar'
 import ConnectArrows from '@/components/ConnectArrows'
 
@@ -125,6 +126,11 @@ export default function FlowNode({
 }: NodeProps<Node<FlowNodeData>>): React.JSX.Element {
   const { label, shape } = data
   const renderShape = SVG_RENDERERS[shape] ?? renderRectangle
+  const resizeNode = useStore(s => s.resizeNode)
+
+  const handleResizeEnd = useCallback((_: unknown, params: ResizeParams) => {
+    resizeNode(id, { width: params.width, height: params.height }, { x: params.x, y: params.y })
+  }, [id, resizeNode])
 
   return (
     <div
@@ -134,7 +140,7 @@ export default function FlowNode({
         selected ? 'flow-node--selected' : '',
       ].filter(Boolean).join(' ')}
     >
-      <NodeResizer isVisible={selected} minWidth={60} minHeight={30} />
+      <NodeResizer isVisible={selected} minWidth={60} minHeight={30} onResizeEnd={handleResizeEnd} />
       <MermvisToolbar isVisible={selected} />
       <ConnectArrows isVisible={selected ?? false} nodeId={id} />
       {renderShape()}

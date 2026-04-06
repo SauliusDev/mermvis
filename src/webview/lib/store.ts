@@ -39,6 +39,7 @@ export interface CanvasSnapshot {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 export const MAX_HISTORY = 100
+export const GRID_SNAP = 24
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ interface StoreState {
   deselectAll: () => void
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
+  resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
   undo: () => void
   redo: () => void
 }
@@ -146,6 +148,22 @@ export const useStore = create<StoreState>()((set, get) => ({
     })
     if (!anyMoved) return  // all positions unchanged — no-op
     withHistory(get, set, { nodes: nextNodes, edges })
+  },
+
+  resizeNode: (id, dimensions, position) => {
+    const { nodes, edges } = get()
+    const target = nodes.find(n => n.id === id)
+    if (!target) return  // id not found — no-op
+    const sameSize = target.width === dimensions.width && target.height === dimensions.height
+    const samePos = !position || (target.position.x === position.x && target.position.y === position.y)
+    if (sameSize && samePos) return  // no-op guard — no history entry
+    const nextNode = {
+      ...target,
+      width: dimensions.width,
+      height: dimensions.height,
+      ...(position ? { position } : {}),
+    }
+    withHistory(get, set, { nodes: nodes.map(n => n.id === id ? nextNode : n), edges })
   },
 
   undo: () => {
