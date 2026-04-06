@@ -21,6 +21,7 @@ export default function Canvas(): React.JSX.Element {
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
   const deselectAll = useStore(s => s.deselectAll)
   const moveNodes = useStore(s => s.moveNodes)
+  const removeNodes = useStore(s => s.removeNodes)
 
   // Compute dimmed node IDs — pure derivation, not stored
   const dimmedNodeIds = useMemo(
@@ -55,14 +56,24 @@ export default function Canvas(): React.JSX.Element {
     applyFlowChanges(applyNodeChanges(safeChanges, nodes) as any)
   }
 
-  // Escape key deselects all nodes
+  // Escape key deselects all nodes; Delete/Backspace removes selected nodes
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
-      if (e.key === 'Escape') deselectAll()
+      const activeTag = (document.activeElement as HTMLElement)?.tagName
+      if (e.key === 'Escape') {
+        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') deselectAll()
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return
+        const selectedIds = useStore.getState().nodes
+          .filter(n => n.selected)
+          .map(n => n.id)
+        if (selectedIds.length > 0) removeNodes(selectedIds)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deselectAll])
+  }, [deselectAll, removeNodes])
 
   return (
     <div className="canvas-container">

@@ -8,17 +8,20 @@ vi.mock('zustand')
 let capturedSnapToGrid: boolean | undefined
 let capturedSnapGrid: [number, number] | undefined
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
+let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
     snapToGrid?: boolean
     snapGrid?: [number, number]
     onNodeDragStop?: (...args: unknown[]) => void
+    onNodesDelete?: (...args: unknown[]) => void
     children?: React.ReactNode
   }) => {
     capturedSnapToGrid = props.snapToGrid
     capturedSnapGrid = props.snapGrid
     capturedOnNodeDragStop = props.onNodeDragStop
+    _capturedOnNodesDelete = props.onNodesDelete
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
   },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
@@ -40,6 +43,7 @@ describe('Canvas', () => {
     capturedSnapToGrid = undefined
     capturedSnapGrid = undefined
     capturedOnNodeDragStop = undefined
+    _capturedOnNodesDelete = undefined
   })
 
   it('renders canvas-container div', () => {
@@ -92,5 +96,64 @@ describe('Canvas', () => {
     })
 
     expect(useStore.getState().nodes[0].position).toEqual({ x: 48, y: 72 })
+  })
+
+  it('pressing Delete with a selected node removes it from the store', () => {
+    const node: Node<FlowNodeData> = {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: { label: 'A', shape: 'rectangle' },
+      type: 'flowNode',
+      selected: true,
+    }
+    useStore.setState({ nodes: [node] })
+    render(<Canvas />)
+
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Delete' })
+    })
+
+    expect(useStore.getState().nodes).toHaveLength(0)
+  })
+
+  it('pressing Backspace with a selected node removes it from the store', () => {
+    const node: Node<FlowNodeData> = {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: { label: 'A', shape: 'rectangle' },
+      type: 'flowNode',
+      selected: true,
+    }
+    useStore.setState({ nodes: [node] })
+    render(<Canvas />)
+
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Backspace' })
+    })
+
+    expect(useStore.getState().nodes).toHaveLength(0)
+  })
+
+  it('pressing Delete while an input is focused does not remove selected nodes', () => {
+    const node: Node<FlowNodeData> = {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: { label: 'A', shape: 'rectangle' },
+      type: 'flowNode',
+      selected: true,
+    }
+    useStore.setState({ nodes: [node] })
+    render(<Canvas />)
+
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Delete' })
+    })
+
+    expect(useStore.getState().nodes).toHaveLength(1)
+    document.body.removeChild(input)
   })
 })

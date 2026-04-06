@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 // vi.mock('zustand') must appear before source imports that use it.
 vi.mock('zustand')
@@ -62,6 +62,12 @@ describe('FlowNode', () => {
   beforeEach(() => {
     capturedOnResizeEnd = undefined
     mockReactFlow()
+    useStore.getState().addNode({
+      id: 'node1',
+      position: { x: 0, y: 0 },
+      data: { label: 'Test', shape: 'rectangle' },
+      type: 'default',
+    })
   })
 
   const shapes: NodeShape[] = [
@@ -173,6 +179,44 @@ describe('FlowNode', () => {
       capturedOnResizeEnd?.({}, { x: 0, y: 0, width: 200, height: 80, direction: [1, 0] })
       expect(useStore.getState().nodes[0].width).toBe(200)
       expect(useStore.getState().nodes[0].height).toBe(80)
+    })
+  })
+
+  describe('inline label editing', () => {
+    it('double-clicking the label shows an input pre-filled with current label', () => {
+      render(<FlowNode {...makeNodeProps('rectangle', 'Test')} />)
+      fireEvent.dblClick(screen.getByText('Test'))
+      const input = screen.getByRole('textbox')
+      expect((input as HTMLInputElement).value).toBe('Test')
+    })
+
+    it('pressing Enter in the input commits the label to the store', () => {
+      render(<FlowNode {...makeNodeProps('rectangle', 'Test')} />)
+      fireEvent.dblClick(screen.getByText('Test'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'Updated' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(useStore.getState().nodes[0].data.label).toBe('Updated')
+      expect(screen.queryByRole('textbox')).toBeNull()
+    })
+
+    it('pressing Escape cancels editing without updating the store', () => {
+      render(<FlowNode {...makeNodeProps('rectangle', 'Test')} />)
+      fireEvent.dblClick(screen.getByText('Test'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'Changed' } })
+      fireEvent.keyDown(input, { key: 'Escape' })
+      expect(useStore.getState().nodes[0].data.label).toBe('Test')
+      expect(screen.queryByRole('textbox')).toBeNull()
+    })
+
+    it('blur on the input commits the label', () => {
+      render(<FlowNode {...makeNodeProps('rectangle', 'Test')} />)
+      fireEvent.dblClick(screen.getByText('Test'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'Blurred' } })
+      fireEvent.blur(input)
+      expect(useStore.getState().nodes[0].data.label).toBe('Blurred')
     })
   })
 })

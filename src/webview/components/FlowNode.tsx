@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Handle, Position, NodeResizer } from '@xyflow/react'
 import type { NodeProps, Node, ResizeParams } from '@xyflow/react'
 import type { FlowNodeData, NodeShape } from '@/lib/store'
@@ -127,10 +127,36 @@ export default function FlowNode({
   const { label, shape } = data
   const renderShape = SVG_RENDERERS[shape] ?? renderRectangle
   const resizeNode = useStore(s => s.resizeNode)
+  const updateNodeLabel = useStore(s => s.updateNodeLabel)
+  const [editingLabel, setEditingLabel] = useState<string | null>(null)
+  const isEscapingRef = useRef(false)
 
   const handleResizeEnd = useCallback((_: unknown, params: ResizeParams) => {
     resizeNode(id, { width: params.width, height: params.height }, { x: params.x, y: params.y })
   }, [id, resizeNode])
+
+  function handleDoubleClick(e: React.MouseEvent): void {
+    e.stopPropagation()
+    isEscapingRef.current = false
+    setEditingLabel(label)
+  }
+
+  function commitEdit(): void {
+    if (editingLabel !== null && !isEscapingRef.current) {
+      updateNodeLabel(id, editingLabel)
+    }
+    isEscapingRef.current = false
+    setEditingLabel(null)
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    e.stopPropagation()
+    if (e.key === 'Enter') commitEdit()
+    if (e.key === 'Escape') {
+      isEscapingRef.current = true
+      setEditingLabel(null)
+    }
+  }
 
   return (
     <div
@@ -144,7 +170,23 @@ export default function FlowNode({
       <MermvisToolbar isVisible={selected} />
       <ConnectArrows isVisible={selected ?? false} nodeId={id} />
       {renderShape()}
-      <div className="flow-node__label">{label}</div>
+      {editingLabel !== null ? (
+        <input
+          className="flow-node__label-input nodrag"
+          value={editingLabel}
+          onChange={e => setEditingLabel(e.target.value)}
+          onKeyDown={handleEditKeyDown}
+          onBlur={commitEdit}
+          autoFocus
+        />
+      ) : (
+        <div
+          className="flow-node__label"
+          onDoubleClick={handleDoubleClick}
+        >
+          {label}
+        </div>
+      )}
       <Handle
         type="source"
         position={Position.Top}

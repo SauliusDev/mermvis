@@ -57,6 +57,62 @@ describe('useStore', () => {
     })
   })
 
+  describe('removeNodes', () => {
+    it('removes multiple nodes matching ids', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      useStore.getState().removeNodes(['a', 'b'])
+      expect(useStore.getState().nodes).toHaveLength(0)
+    })
+
+    it('removes only specified nodes, keeps others', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      useStore.getState().addNode(makeNode('c'))
+      useStore.getState().removeNodes(['a'])
+      expect(useStore.getState().nodes).toHaveLength(2)
+      expect(useStore.getState().nodes.every(n => n.id !== 'a')).toBe(true)
+    })
+
+    it('removes edges connected to any deleted node', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      useStore.setState({
+        edges: [{ id: 'e1', source: 'a', target: 'b' }] as Edge<FlowEdgeData>[],
+      })
+      useStore.getState().removeNodes(['a'])
+      expect(useStore.getState().edges).toHaveLength(0)
+    })
+
+    it('creates exactly one history entry for multi-node deletion', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      const before = useStore.getState().history.past.length
+      useStore.getState().removeNodes(['a', 'b'])
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+    })
+
+    it('no-op when no ids match', () => {
+      useStore.getState().addNode(makeNode('a'))
+      const before = useStore.getState().history.past.length
+      useStore.getState().removeNodes(['z'])
+      expect(useStore.getState().history.past.length).toBe(before)
+      expect(useStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('undo restores deleted nodes and edges', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().addNode(makeNode('b'))
+      useStore.setState({
+        edges: [{ id: 'e1', source: 'a', target: 'b' }] as Edge<FlowEdgeData>[],
+      })
+      useStore.getState().removeNodes(['a', 'b'])
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(2)
+      expect(useStore.getState().edges).toHaveLength(1)
+    })
+  })
+
   describe('updateNodeLabel', () => {
     it('updates the label for the matching node', () => {
       useStore.getState().addNode(makeNode('a'))

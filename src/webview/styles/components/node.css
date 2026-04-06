@@ -31,7 +31,28 @@
   color: var(--mv-node-text);
   text-align: center;
   line-height: 1.4;
-  pointer-events: none;
+  pointer-events: auto;
+  user-select: none;
+  word-break: break-word;
+}
+
+/* ── Inline label editor ───────────────────────────────────────────────────── */
+.flow-node__label-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  font-family: var(--mv-font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mv-text-bright);
+  text-align: center;
+  line-height: 1.4;
+  background: var(--mv-bg-overlay);
+  border: 1px solid var(--mv-accent);
+  border-radius: var(--mv-r-sm);
+  outline: none;
   word-break: break-word;
 }
 

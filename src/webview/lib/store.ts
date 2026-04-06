@@ -52,6 +52,7 @@ interface StoreState {
   }
   addNode: (node: Node<FlowNodeData>) => void
   removeNode: (id: string) => void
+  removeNodes: (ids: string[]) => void
   applyFlowChanges: (nodes: Node<FlowNodeData>[]) => void
   deselectAll: () => void
   updateNodeLabel: (id: string, label: string) => void
@@ -105,12 +106,17 @@ export const useStore = create<StoreState>()((set, get) => ({
     withHistory(get, set, { nodes: [...nodes, node], edges })
   },
 
-  removeNode: (id) => {
+  removeNodes: (ids) => {
     const { nodes, edges } = get()
-    const nextNodes = nodes.filter(n => n.id !== id)
-    if (nextNodes.length === nodes.length) return  // id not found — no-op
-    const nextEdges = edges.filter(e => e.source !== id && e.target !== id)
+    const idSet = new Set(ids)
+    const nextNodes = nodes.filter(n => !idSet.has(n.id))
+    if (nextNodes.length === nodes.length) return  // none matched — no-op
+    const nextEdges = edges.filter(e => !idSet.has(e.source) && !idSet.has(e.target))
     withHistory(get, set, { nodes: nextNodes, edges: nextEdges })
+  },
+
+  removeNode: (id) => {
+    get().removeNodes([id])
   },
 
   updateNodeLabel: (id, label) => {
