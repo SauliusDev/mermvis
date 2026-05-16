@@ -388,6 +388,119 @@ describe('useStore', () => {
     })
   })
 
+  describe('removeEdge / removeEdges', () => {
+    it('removeEdge removes the edge by id and records one history entry', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().removeEdge('e1')
+      expect(useStore.getState().edges).toHaveLength(0)
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('undo() after removeEdge restores the edge', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().removeEdge('e1')
+      useStore.getState().undo()
+      expect(useStore.getState().edges).toHaveLength(1)
+      expect(useStore.getState().edges[0].id).toBe('e1')
+    })
+
+    it('removeEdge with non-existent id is a no-op — no history entry', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeEdge('nonexistent')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('removeEdges removes multiple edges in a single history entry', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B'), makeEdge('e2', 'B', 'C')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().removeEdges(['e1', 'e2'])
+      expect(useStore.getState().edges).toHaveLength(0)
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('removeEdges with empty ids array is a no-op', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().removeEdges([])
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
+  describe('updateEdgeLabel', () => {
+    it('sets label on edge and creates one history entry', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateEdgeLabel('e1', 'yes')
+      expect(useStore.getState().edges[0].data?.label).toBe('yes')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('undo() after updateEdgeLabel restores previous label', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B', { data: { style: 'arrow', label: 'old' } })],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateEdgeLabel('e1', 'new')
+      useStore.getState().undo()
+      expect(useStore.getState().edges[0].data?.label).toBe('old')
+    })
+
+    it('same label is a no-op — no history entry', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B', { data: { style: 'arrow', label: 'text' } })],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateEdgeLabel('e1', 'text')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('empty string stores undefined and creates one history entry when previous was set', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B', { data: { style: 'arrow', label: 'text' } })],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateEdgeLabel('e1', '')
+      expect(useStore.getState().edges[0].data?.label).toBeUndefined()
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('empty string on edge with no label is a no-op', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateEdgeLabel('e1', '  ')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('non-existent id is a no-op', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateEdgeLabel('nonexistent', 'text')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
   describe('setEdgeStyle', () => {
     it('changes edge style and records one history entry', () => {
       useStore.setState({

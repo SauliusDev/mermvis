@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react'
 import type { EdgeProps } from '@xyflow/react'
 import type { FlowEdgeData, EdgeStyle } from '@/lib/store'
@@ -17,7 +17,11 @@ export default function FlowEdge({
   data, selected,
 }: EdgeProps<FlowEdgeData>): React.JSX.Element {
   const setEdgeStyle = useStore(s => s.setEdgeStyle)
+  const updateEdgeLabel = useStore(s => s.updateEdgeLabel)
   const style = data?.style ?? 'arrow'
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const isEscapingRef = useRef(false)
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition,
@@ -26,6 +30,21 @@ export default function FlowEdge({
 
   const markerId = `mv-arrow-${id}`
   const hasMarker = style !== 'open'
+
+  const commitEdit = useCallback(() => {
+    if (!isEscapingRef.current) {
+      updateEdgeLabel(id, editValue)
+    }
+    isEscapingRef.current = false
+    setEditing(false)
+  }, [id, editValue, updateEdgeLabel])
+
+  const handleLabelDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    isEscapingRef.current = false
+    setEditValue(data?.label ?? '')
+    setEditing(true)
+  }, [data?.label])
 
   return (
     <>
@@ -63,13 +82,54 @@ export default function FlowEdge({
           .join(' ')}
         markerEnd={hasMarker ? `url(#${markerId})` : undefined}
       />
+
+      {/* Always-visible label area — not inside {selected && ...} */}
+      <EdgeLabelRenderer>
+        <div
+          className="flow-edge__label-area nodrag nopan"
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: 'all',
+          }}
+          onDoubleClick={handleLabelDoubleClick}
+        >
+          {editing ? (
+            <input
+              className="flow-edge__label-input"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+                if (e.key === 'Escape') { e.stopPropagation(); isEscapingRef.current = true; setEditing(false) }
+              }}
+              onBlur={commitEdit}
+              autoFocus
+            />
+          ) : (
+            <span
+              className={
+                data?.label
+                  ? 'flow-edge__label'
+                  : selected
+                  ? 'flow-edge__label-affordance'
+                  : undefined
+              }
+            >
+              {data?.label ?? (selected ? '✎' : '')}
+            </span>
+          )}
+        </div>
+      </EdgeLabelRenderer>
+
+      {/* Style toolbar — only when selected, positioned above the label */}
       {selected && (
         <EdgeLabelRenderer>
           <div
             className="flow-edge__toolbar nodrag nopan"
             style={{
               position: 'absolute',
-              transform: `translate(-50%, calc(-50% - 20px)) translate(${labelX}px,${labelY}px)`,
+              transform: `translate(-50%, calc(-50% - 28px)) translate(${labelX}px,${labelY}px)`,
               pointerEvents: 'all',
             }}
           >

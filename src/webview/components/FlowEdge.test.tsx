@@ -45,7 +45,7 @@ const baseProps = {
 
 describe('FlowEdge', () => {
   beforeEach(() => {
-    useStore.setState({ edges: [], nodes: [], history: { past: [], future: [] } })
+    useStore.setState({ edges: [], nodes: [], history: { past: [], future: [] }, updateEdgeLabel: vi.fn() } as never)
   })
 
   it('renders BaseEdge with flow-edge__path--arrow class for arrow style', () => {
@@ -68,14 +68,13 @@ describe('FlowEdge', () => {
     expect(screen.getByTestId('base-edge').getAttribute('data-marker-end')).toBe('')
   })
 
-  it('non-selected edge does not render EdgeLabelRenderer toolbar', () => {
+  it('non-selected edge does not render style toolbar buttons', () => {
     render(<FlowEdge {...baseProps} selected={false} />)
-    expect(screen.queryByTestId('edge-label-renderer')).toBeNull()
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 
-  it('selected edge renders EdgeLabelRenderer with exactly 4 style buttons', () => {
+  it('selected edge renders exactly 4 style buttons', () => {
     render(<FlowEdge {...baseProps} selected={true} />)
-    expect(screen.getByTestId('edge-label-renderer')).toBeTruthy()
     expect(screen.getAllByRole('button')).toHaveLength(4)
   })
 
@@ -85,5 +84,59 @@ describe('FlowEdge', () => {
     render(<FlowEdge {...baseProps} selected={true} />)
     act(() => { fireEvent.click(screen.getByTitle('Dotted arrow')) })
     expect(mockSetEdgeStyle).toHaveBeenCalledWith('e-A-B', 'dotted')
+  })
+
+  it('renders label text when data.label is set', () => {
+    render(<FlowEdge {...baseProps} data={{ style: 'arrow', label: 'yes' }} />)
+    expect(screen.getByText('yes')).toBeTruthy()
+  })
+
+  it('renders pencil affordance when selected=true and no label', () => {
+    render(<FlowEdge {...baseProps} selected={true} data={{ style: 'arrow' }} />)
+    expect(screen.getByText('✎')).toBeTruthy()
+  })
+
+  it('does not render pencil when not selected and no label', () => {
+    render(<FlowEdge {...baseProps} selected={false} data={{ style: 'arrow' }} />)
+    expect(screen.queryByText('✎')).toBeNull()
+  })
+
+  it('double-click on label area activates editing mode (input appears)', () => {
+    render(<FlowEdge {...baseProps} data={{ style: 'arrow', label: 'old' }} />)
+    const labelArea = screen.getByText('old').parentElement!
+    fireEvent.doubleClick(labelArea)
+    expect(screen.getByRole('textbox')).toBeTruthy()
+  })
+
+  it('Enter in input calls updateEdgeLabel and closes editing', () => {
+    const mockUpdateEdgeLabel = vi.fn()
+    useStore.setState({ updateEdgeLabel: mockUpdateEdgeLabel } as never)
+    render(<FlowEdge {...baseProps} data={{ style: 'arrow', label: 'old' }} />)
+    fireEvent.doubleClick(screen.getByText('old').parentElement!)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'new' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(mockUpdateEdgeLabel).toHaveBeenCalledWith('e-A-B', 'new')
+  })
+
+  it('Escape in input cancels without calling updateEdgeLabel', () => {
+    const mockUpdateEdgeLabel = vi.fn()
+    useStore.setState({ updateEdgeLabel: mockUpdateEdgeLabel } as never)
+    render(<FlowEdge {...baseProps} data={{ style: 'arrow', label: 'old' }} />)
+    fireEvent.doubleClick(screen.getByText('old').parentElement!)
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' })
+    expect(mockUpdateEdgeLabel).not.toHaveBeenCalled()
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('onBlur on input calls updateEdgeLabel', () => {
+    const mockUpdateEdgeLabel = vi.fn()
+    useStore.setState({ updateEdgeLabel: mockUpdateEdgeLabel } as never)
+    render(<FlowEdge {...baseProps} data={{ style: 'arrow', label: 'old' }} />)
+    fireEvent.doubleClick(screen.getByText('old').parentElement!)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'blurred' } })
+    fireEvent.blur(input)
+    expect(mockUpdateEdgeLabel).toHaveBeenCalledWith('e-A-B', 'blurred')
   })
 })

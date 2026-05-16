@@ -59,6 +59,9 @@ interface StoreState {
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
+  removeEdge: (id: string) => void
+  removeEdges: (ids: string[]) => void
+  updateEdgeLabel: (id: string, label: string) => void
   addEdge: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void
   setEdgeStyle: (id: string, style: EdgeStyle) => void
   setPendingConnect: (sourceId: string | null) => void
@@ -123,6 +126,33 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   removeNode: (id) => {
     get().removeNodes([id])
+  },
+
+  removeEdges: (ids) => {
+    const { nodes, edges } = get()
+    const idSet = new Set(ids)
+    const nextEdges = edges.filter(e => !idSet.has(e.id))
+    if (nextEdges.length === edges.length) return
+    withHistory(get, set, { nodes, edges: nextEdges })
+  },
+
+  removeEdge: (id) => {
+    get().removeEdges([id])
+  },
+
+  updateEdgeLabel: (id, label) => {
+    const { nodes, edges } = get()
+    const edge = edges.find(e => e.id === id)
+    if (!edge) return
+    const trimmed = label.trim()
+    const nextLabel: string | undefined = trimmed === '' ? undefined : trimmed
+    if (edge.data?.label === nextLabel) return
+    withHistory(get, set, {
+      nodes,
+      edges: edges.map(e =>
+        e.id === id ? { ...e, data: { ...e.data, label: nextLabel } } : e
+      ),
+    })
   },
 
   setEdgeStyle: (id, style) => {

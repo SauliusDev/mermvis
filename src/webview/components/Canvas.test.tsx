@@ -13,6 +13,7 @@ let capturedOnConnect: ((connection: unknown) => void) | undefined
 let capturedEdgeTypes: unknown
 let capturedOnNodeClick: ((e: unknown, node: { id: string }) => void) | undefined
 let capturedOnPaneClick: ((e: React.MouseEvent) => void) | undefined
+let capturedEdges: unknown[] | undefined
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
@@ -22,6 +23,7 @@ vi.mock('@xyflow/react', () => ({
     onNodesDelete?: (...args: unknown[]) => void
     onConnect?: (connection: unknown) => void
     edgeTypes?: unknown
+    edges?: unknown[]
     onNodeClick?: (e: unknown, node: { id: string }) => void
     onPaneClick?: (e: React.MouseEvent) => void
     children?: React.ReactNode
@@ -32,6 +34,7 @@ vi.mock('@xyflow/react', () => ({
     _capturedOnNodesDelete = props.onNodesDelete
     capturedOnConnect = props.onConnect
     capturedEdgeTypes = props.edgeTypes
+    capturedEdges = props.edges
     capturedOnNodeClick = props.onNodeClick
     capturedOnPaneClick = props.onPaneClick
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
@@ -53,7 +56,7 @@ import { useStore } from '@/lib/store'
 import type { Node } from '@xyflow/react'
 import type { FlowNodeData } from '@/lib/store'
 import { mockReactFlow } from '../setupTests'
-import { makeNode } from '@/test/store-helpers'
+import { makeNode, makeEdge } from '@/test/store-helpers'
 
 mockReactFlow()
 
@@ -65,6 +68,7 @@ describe('Canvas', () => {
     _capturedOnNodesDelete = undefined
     capturedOnConnect = undefined
     capturedEdgeTypes = undefined
+    capturedEdges = undefined
     capturedOnNodeClick = undefined
     capturedOnPaneClick = undefined
   })
@@ -266,5 +270,54 @@ describe('Canvas', () => {
       fireEvent.keyDown(window, { key: 'Escape' })
     })
     expect(mockSetPendingConnect).toHaveBeenCalledWith(null)
+  })
+
+  it('Delete key with selected edge calls removeEdges with edge id', () => {
+    const mockRemoveEdges = vi.fn()
+    useStore.setState({
+      nodes: [],
+      edges: [{ id: 'e1', source: 'A', target: 'B', selected: true, data: { style: 'arrow' } }],
+      removeEdges: mockRemoveEdges,
+      removeNodes: vi.fn(),
+      setPendingConnect: vi.fn(),
+    } as never)
+    render(<Canvas />)
+    act(() => { fireEvent.keyDown(window, { key: 'Delete' }) })
+    expect(mockRemoveEdges).toHaveBeenCalledWith(['e1'])
+  })
+
+  it('Delete key with selected node does not call removeEdges', () => {
+    const mockRemoveEdges = vi.fn()
+    const mockRemoveNodes = vi.fn()
+    useStore.setState({
+      nodes: [{ id: 'n1', selected: true, position: { x: 0, y: 0 }, data: { label: 'N', shape: 'rectangle' }, type: 'flowNode' }],
+      edges: [{ id: 'e1', source: 'n1', target: 'n2', selected: false, data: { style: 'arrow' } }],
+      removeEdges: mockRemoveEdges,
+      removeNodes: mockRemoveNodes,
+      setPendingConnect: vi.fn(),
+    } as never)
+    render(<Canvas />)
+    act(() => { fireEvent.keyDown(window, { key: 'Delete' }) })
+    expect(mockRemoveEdges).not.toHaveBeenCalled()
+    expect(mockRemoveNodes).toHaveBeenCalledWith(['n1'])
+  })
+
+  it('edges connected to selected node have className flow-edge--connected in displayEdges', () => {
+    useStore.setState({
+      nodes: [
+        makeNode('A', { selected: true }),
+        makeNode('B'),
+      ],
+      edges: [
+        makeEdge('e1', 'A', 'B'),
+        makeEdge('e2', 'B', 'X'),
+      ],
+    } as never)
+    render(<Canvas />)
+    const edges = capturedEdges as Array<{ id: string; className?: string }>
+    const e1 = edges.find(e => e.id === 'e1')
+    const e2 = edges.find(e => e.id === 'e2')
+    expect(e1?.className).toBe('flow-edge--connected')
+    expect(e2?.className).toBeUndefined()
   })
 })

@@ -26,3 +26,17 @@ export function computeDimmedNodeIds(
       .map(n => n.id)
   )
 }
+
+export function computeConnectedEdgeIds(
+  nodes: Node<FlowNodeData>[],
+  edges: Edge<FlowEdgeData>[]
+): Set<string> {
+  const selectedIds = nodes.filter(n => n.selected).map(n => n.id)
+  if (selectedIds.length !== 1) return new Set<string>()
+  const [selectedId] = selectedIds
+  return new Set(
+    edges
+      .filter(e => e.source === selectedId || e.target === selectedId)
+      .map(e => e.id)
+  )
+}

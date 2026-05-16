@@ -89,3 +89,55 @@
   background: var(--mv-accent-dim);
   color: var(--mv-accent);
 }
+
+/* ── Edge Label ──────────────────────────────────────────────────────────────── */
+.flow-edge__label-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 18px;
+}
+
+.flow-edge__label {
+  background: var(--mv-bg-elevated);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-r-sm);
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--mv-text-primary);
+  white-space: nowrap;
+  pointer-events: all;
+  cursor: text;
+}
+
+.flow-edge__label-affordance {
+  color: var(--mv-text-dim);
+  font-size: 11px;
+  opacity: 0.6;
+  cursor: text;
+}
+
+.flow-edge__label-input {
+  background: var(--mv-bg-elevated);
+  border: 1px solid var(--mv-accent);
+  border-radius: var(--mv-r-sm);
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--mv-text-primary);
+  outline: none;
+  min-width: 60px;
+  max-width: 200px;
+}
+
+/* ── Connected Edge Highlight ───────────────────────────────────────────────── */
+/* Highlights edges connected to the selected node (FR66) — distinct from user-selected edge */
+.react-flow__edge.flow-edge--connected .react-flow__edge-path,
+.react-flow__edge.flow-edge--connected .flow-edge__path {
+  stroke: var(--mv-edge-selected) !important;
+}
+
+.react-flow__edge.flow-edge--connected .react-flow__arrowhead path,
+.react-flow__edge.flow-edge--connected .flow-edge__arrowhead {
+  fill: var(--mv-edge-selected) !important;
+}

@@ -9,7 +9,7 @@ import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
 import FlowEdge from '@/components/FlowEdge'
 import CanvasSidebar from '@/components/CanvasSidebar'
-import { computeDimmedNodeIds } from '@/lib/selection'
+import { computeDimmedNodeIds, computeConnectedEdgeIds } from '@/lib/selection'
 
 // CRITICAL: nodeTypes must be at module scope — never inside the component.
 // React Flow compares nodeTypes by reference on every render. If defined inside
@@ -26,6 +26,7 @@ function CanvasFlow(): React.JSX.Element {
   const deselectAll = useStore(s => s.deselectAll)
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
+  const removeEdges = useStore(s => s.removeEdges)
   const { pendingConnect, setPendingConnect, spawnConnectedNode, addEdge } = useStore(
     useShallow(s => ({
       pendingConnect: s.pendingConnect,
@@ -49,6 +50,19 @@ function CanvasFlow(): React.JSX.Element {
         ? nodes.map(n => dimmedNodeIds.has(n.id) ? { ...n, className: 'dimmed' } : n)
         : nodes,
     [nodes, dimmedNodeIds]
+  )
+
+  const connectedEdgeIds = useMemo(
+    () => computeConnectedEdgeIds(nodes, edges),
+    [nodes, edges]
+  )
+
+  const displayEdges = useMemo(
+    () =>
+      connectedEdgeIds.size > 0
+        ? edges.map(e => connectedEdgeIds.has(e.id) ? { ...e, className: 'flow-edge--connected' } : e)
+        : edges,
+    [edges, connectedEdgeIds]
   )
 
   function handleConnect(connection: Connection): void {
@@ -102,25 +116,30 @@ function CanvasFlow(): React.JSX.Element {
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return
-        const selectedIds = useStore.getState().nodes
+        const selectedNodeIds = useStore.getState().nodes
           .filter(n => n.selected)
           .map(n => n.id)
-        if (selectedIds.length > 0) {
-          removeNodes(selectedIds)
+        const selectedEdgeIds = useStore.getState().edges
+          .filter(e => e.selected)
+          .map(e => e.id)
+        if (selectedNodeIds.length > 0) {
+          removeNodes(selectedNodeIds)
           setPendingConnect(null)
+        } else if (selectedEdgeIds.length > 0) {
+          removeEdges(selectedEdgeIds)
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deselectAll, removeNodes, setPendingConnect])
+  }, [deselectAll, removeNodes, removeEdges, setPendingConnect])
 
   return (
     <div className={`canvas-container${pendingConnect ? ' canvas--pending-connect' : ''}`}>
       <CanvasSidebar />
       <ReactFlow
         nodes={displayNodes}
-        edges={edges}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={handleNodesChange}
