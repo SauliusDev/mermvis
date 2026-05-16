@@ -11,6 +11,8 @@ let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
 let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
 let capturedOnConnect: ((connection: unknown) => void) | undefined
 let capturedEdgeTypes: unknown
+let capturedOnNodeClick: ((e: unknown, node: { id: string }) => void) | undefined
+let capturedOnPaneClick: ((e: React.MouseEvent) => void) | undefined
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
@@ -20,6 +22,8 @@ vi.mock('@xyflow/react', () => ({
     onNodesDelete?: (...args: unknown[]) => void
     onConnect?: (connection: unknown) => void
     edgeTypes?: unknown
+    onNodeClick?: (e: unknown, node: { id: string }) => void
+    onPaneClick?: (e: React.MouseEvent) => void
     children?: React.ReactNode
   }) => {
     capturedSnapToGrid = props.snapToGrid
@@ -28,6 +32,8 @@ vi.mock('@xyflow/react', () => ({
     _capturedOnNodesDelete = props.onNodesDelete
     capturedOnConnect = props.onConnect
     capturedEdgeTypes = props.edgeTypes
+    capturedOnNodeClick = props.onNodeClick
+    capturedOnPaneClick = props.onPaneClick
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
   },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
@@ -35,6 +41,11 @@ vi.mock('@xyflow/react', () => ({
   SelectionMode: { Partial: 'partial', Full: 'full' },
   ConnectionMode: { Loose: 'loose', Strict: 'strict' },
   applyNodeChanges: vi.fn((_changes: unknown, nodes: unknown) => nodes),
+  ReactFlowProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+  useReactFlow: vi.fn(() => ({
+    screenToFlowPosition: vi.fn((pos: { x: number; y: number }) => pos),
+  })),
 }))
 
 import Canvas from './Canvas'
@@ -42,6 +53,7 @@ import { useStore } from '@/lib/store'
 import type { Node } from '@xyflow/react'
 import type { FlowNodeData } from '@/lib/store'
 import { mockReactFlow } from '../setupTests'
+import { makeNode } from '@/test/store-helpers'
 
 mockReactFlow()
 
@@ -53,6 +65,8 @@ describe('Canvas', () => {
     _capturedOnNodesDelete = undefined
     capturedOnConnect = undefined
     capturedEdgeTypes = undefined
+    capturedOnNodeClick = undefined
+    capturedOnPaneClick = undefined
   })
 
   it('renders canvas-container div', () => {
@@ -186,5 +200,71 @@ describe('Canvas', () => {
   it('edgeTypes prop registers FlowEdge as the default edge type', () => {
     render(<Canvas />)
     expect(capturedEdgeTypes).toHaveProperty('default')
+  })
+
+  it('onNodeClick with active pendingConnect creates an edge to target node', () => {
+    const mockAddEdge = vi.fn()
+    const mockSetPendingConnect = vi.fn()
+    useStore.setState({
+      nodes: [makeNode('src'), makeNode('tgt')],
+      edges: [],
+      pendingConnect: { sourceId: 'src' },
+      addEdge: mockAddEdge,
+      setPendingConnect: mockSetPendingConnect,
+    } as never)
+    render(<Canvas />)
+    act(() => {
+      capturedOnNodeClick?.({}, { id: 'tgt' })
+    })
+    expect(mockAddEdge).toHaveBeenCalledWith({ source: 'src', target: 'tgt' })
+    expect(mockSetPendingConnect).toHaveBeenCalledWith(null)
+  })
+
+  it('onNodeClick on source node clears pendingConnect without creating edge', () => {
+    const mockAddEdge = vi.fn()
+    const mockSetPendingConnect = vi.fn()
+    useStore.setState({
+      nodes: [makeNode('src')],
+      pendingConnect: { sourceId: 'src' },
+      addEdge: mockAddEdge,
+      setPendingConnect: mockSetPendingConnect,
+    } as never)
+    render(<Canvas />)
+    act(() => {
+      capturedOnNodeClick?.({}, { id: 'src' })
+    })
+    expect(mockAddEdge).not.toHaveBeenCalled()
+    expect(mockSetPendingConnect).toHaveBeenCalledWith(null)
+  })
+
+  it('onPaneClick with active pendingConnect calls spawnConnectedNode', () => {
+    const mockSpawn = vi.fn()
+    const mockSetPendingConnect = vi.fn()
+    useStore.setState({
+      nodes: [makeNode('src')],
+      pendingConnect: { sourceId: 'src' },
+      spawnConnectedNode: mockSpawn,
+      setPendingConnect: mockSetPendingConnect,
+    } as never)
+    render(<Canvas />)
+    act(() => {
+      capturedOnPaneClick?.({ clientX: 100, clientY: 200 } as React.MouseEvent)
+    })
+    expect(mockSpawn).toHaveBeenCalledWith('src', { x: 100, y: 200 })
+    expect(mockSetPendingConnect).toHaveBeenCalledWith(null)
+  })
+
+  it('Escape key clears pendingConnect via setPendingConnect(null)', () => {
+    const mockSetPendingConnect = vi.fn()
+    useStore.setState({
+      nodes: [makeNode('src')],
+      pendingConnect: { sourceId: 'src' },
+      setPendingConnect: mockSetPendingConnect,
+    } as never)
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Escape' })
+    })
+    expect(mockSetPendingConnect).toHaveBeenCalledWith(null)
   })
 })

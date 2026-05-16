@@ -1,9 +1,10 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useCallback } from 'react'
 import {
   ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode, ConnectionMode,
+  ReactFlowProvider, useReactFlow,
 } from '@xyflow/react'
-import type { NodeChange, Node, Connection } from '@xyflow/react'
-import { useStore, GRID_SNAP } from '@/lib/store'
+import type { NodeChange, Node, Connection, NodeMouseHandler } from '@xyflow/react'
+import { useStore, useShallow, GRID_SNAP } from '@/lib/store'
 import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
 import FlowEdge from '@/components/FlowEdge'
@@ -17,14 +18,22 @@ import { computeDimmedNodeIds } from '@/lib/selection'
 const nodeTypes = { flowNode: FlowNode }
 const edgeTypes = { default: FlowEdge }
 
-export default function Canvas(): React.JSX.Element {
+function CanvasFlow(): React.JSX.Element {
+  const { screenToFlowPosition } = useReactFlow()
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
   const deselectAll = useStore(s => s.deselectAll)
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
-  const addEdge = useStore(s => s.addEdge)
+  const { pendingConnect, setPendingConnect, spawnConnectedNode, addEdge } = useStore(
+    useShallow(s => ({
+      pendingConnect: s.pendingConnect,
+      setPendingConnect: s.setPendingConnect,
+      spawnConnectedNode: s.spawnConnectedNode,
+      addEdge: s.addEdge,
+    }))
+  )
 
   // Compute dimmed node IDs — pure derivation, not stored
   const dimmedNodeIds = useMemo(
@@ -64,27 +73,50 @@ export default function Canvas(): React.JSX.Element {
     applyFlowChanges(applyNodeChanges(safeChanges, nodes) as any)
   }
 
-  // Escape key deselects all nodes; Delete/Backspace removes selected nodes
+  const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
+    if (!pendingConnect) return
+    if (node.id === pendingConnect.sourceId) {
+      setPendingConnect(null)
+      return
+    }
+    addEdge({ source: pendingConnect.sourceId, target: node.id })
+    setPendingConnect(null)
+  }, [pendingConnect, setPendingConnect, addEdge])
+
+  const handlePaneClick = useCallback((e: React.MouseEvent) => {
+    if (!pendingConnect) return
+    const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+    spawnConnectedNode(pendingConnect.sourceId, position)
+    setPendingConnect(null)
+  }, [pendingConnect, setPendingConnect, spawnConnectedNode, screenToFlowPosition])
+
+  // Escape key deselects all nodes and clears pendingConnect; Delete/Backspace removes selected nodes
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
       const activeTag = (document.activeElement as HTMLElement)?.tagName
       if (e.key === 'Escape') {
-        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') deselectAll()
+        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+          deselectAll()
+          setPendingConnect(null)
+        }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return
         const selectedIds = useStore.getState().nodes
           .filter(n => n.selected)
           .map(n => n.id)
-        if (selectedIds.length > 0) removeNodes(selectedIds)
+        if (selectedIds.length > 0) {
+          removeNodes(selectedIds)
+          setPendingConnect(null)
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deselectAll, removeNodes])
+  }, [deselectAll, removeNodes, setPendingConnect])
 
   return (
-    <div className="canvas-container">
+    <div className={`canvas-container${pendingConnect ? ' canvas--pending-connect' : ''}`}>
       <CanvasSidebar />
       <ReactFlow
         nodes={displayNodes}
@@ -94,6 +126,8 @@ export default function Canvas(): React.JSX.Element {
         onNodesChange={handleNodesChange}
         onConnect={handleConnect}
         onNodeDragStop={handleNodeDragStop}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
         connectionMode={ConnectionMode.Loose}
         snapToGrid={true}
         snapGrid={[GRID_SNAP, GRID_SNAP] as [number, number]}
@@ -112,5 +146,13 @@ export default function Canvas(): React.JSX.Element {
         />
       </ReactFlow>
     </div>
+  )
+}
+
+export default function Canvas(): React.JSX.Element {
+  return (
+    <ReactFlowProvider>
+      <CanvasFlow />
+    </ReactFlowProvider>
   )
 }

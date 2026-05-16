@@ -308,6 +308,86 @@ describe('useStore', () => {
     })
   })
 
+  describe('pendingConnect / setPendingConnect', () => {
+    it('setPendingConnect sets sourceId', () => {
+      useStore.setState({ pendingConnect: null, history: { past: [], future: [] } })
+      useStore.getState().setPendingConnect('node-1')
+      expect(useStore.getState().pendingConnect?.sourceId).toBe('node-1')
+    })
+
+    it('setPendingConnect(null) clears pendingConnect', () => {
+      useStore.setState({ pendingConnect: { sourceId: 'node-1' }, history: { past: [], future: [] } })
+      useStore.getState().setPendingConnect(null)
+      expect(useStore.getState().pendingConnect).toBeNull()
+    })
+
+    it('setPendingConnect does NOT create a history entry', () => {
+      useStore.setState({ pendingConnect: null, history: { past: [], future: [] } })
+      useStore.getState().setPendingConnect('node-1')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
+  describe('spawnConnectedNode', () => {
+    it('creates a new node with the same shape as the source node', () => {
+      useStore.setState({
+        nodes: [makeNode('src', { data: { label: 'Src', shape: 'diamond' } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().spawnConnectedNode('src', { x: 200, y: 300 })
+      const { nodes } = useStore.getState()
+      const newNode = nodes.find(n => n.id !== 'src')!
+      expect(newNode.data.shape).toBe('diamond')
+      expect(newNode.data.label).toBe('Node')
+      expect(newNode.position).toEqual({ x: 200, y: 300 })
+      expect(newNode.type).toBe('flowNode')
+    })
+
+    it('creates an edge from source to new node with style arrow', () => {
+      useStore.setState({
+        nodes: [makeNode('src')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().spawnConnectedNode('src', { x: 100, y: 100 })
+      const { edges, nodes } = useStore.getState()
+      const newNodeId = nodes.find(n => n.id !== 'src')!.id
+      expect(edges).toHaveLength(1)
+      expect(edges[0].source).toBe('src')
+      expect(edges[0].target).toBe(newNodeId)
+      expect(edges[0].data?.style).toBe('arrow')
+    })
+
+    it('creates exactly ONE history entry (node + edge atomic)', () => {
+      useStore.setState({
+        nodes: [makeNode('src')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().spawnConnectedNode('src', { x: 100, y: 100 })
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('undo() removes both the spawned node and edge', () => {
+      useStore.setState({
+        nodes: [makeNode('src')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().spawnConnectedNode('src', { x: 100, y: 100 })
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().edges).toHaveLength(0)
+    })
+
+    it('non-existent sourceId is a no-op — no history entry', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().spawnConnectedNode('nonexistent', { x: 0, y: 0 })
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
   describe('setEdgeStyle', () => {
     it('changes edge style and records one history entry', () => {
       useStore.setState({

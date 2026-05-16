@@ -174,3 +174,8 @@
 .react-flow__node.selected .flow-node__handle {
   opacity: 1;
 }
+
+/* ── Pending Connect Cursor ─────────────────────────────────────────────────── */
+.canvas--pending-connect .react-flow__pane {
+  cursor: crosshair;
+}

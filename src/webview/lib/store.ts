@@ -50,6 +50,7 @@ interface StoreState {
     past: CanvasSnapshot[]
     future: CanvasSnapshot[]
   }
+  pendingConnect: { sourceId: string } | null
   addNode: (node: Node<FlowNodeData>) => void
   removeNode: (id: string) => void
   removeNodes: (ids: string[]) => void
@@ -60,6 +61,8 @@ interface StoreState {
   resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
   addEdge: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void
   setEdgeStyle: (id: string, style: EdgeStyle) => void
+  setPendingConnect: (sourceId: string | null) => void
+  spawnConnectedNode: (sourceId: string, position: { x: number; y: number }) => void
   undo: () => void
   redo: () => void
 }
@@ -101,6 +104,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   nodes: [],
   edges: [],
   history: { past: [], future: [] },
+  pendingConnect: null,
 
   addNode: (node) => {
     const { nodes, edges } = get()
@@ -201,6 +205,34 @@ export const useStore = create<StoreState>()((set, get) => ({
       ...(position ? { position } : {}),
     }
     withHistory(get, set, { nodes: nodes.map(n => n.id === id ? nextNode : n), edges })
+  },
+
+  setPendingConnect: (sourceId) => {
+    set({ pendingConnect: sourceId ? { sourceId } : null })
+  },
+
+  spawnConnectedNode: (sourceId, position) => {
+    const { nodes, edges } = get()
+    const sourceNode = nodes.find(n => n.id === sourceId)
+    if (!sourceNode) return
+    const newId = crypto.randomUUID()
+    const newNode: Node<FlowNodeData> = {
+      id: newId,
+      position,
+      type: 'flowNode',
+      data: { label: 'Node', shape: sourceNode.data.shape },
+    }
+    const newEdge: Edge<FlowEdgeData> = {
+      id: `e-${sourceId}-${newId}`,
+      source: sourceId,
+      target: newId,
+      data: { style: 'arrow' },
+      type: 'default',
+    }
+    withHistory(get, set, {
+      nodes: [...nodes, newNode],
+      edges: [...edges, newEdge],
+    })
   },
 
   undo: () => {
