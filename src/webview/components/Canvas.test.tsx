@@ -9,6 +9,7 @@ let capturedSnapToGrid: boolean | undefined
 let capturedSnapGrid: [number, number] | undefined
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
 let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
+let capturedOnConnect: ((connection: unknown) => void) | undefined
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
@@ -16,17 +17,20 @@ vi.mock('@xyflow/react', () => ({
     snapGrid?: [number, number]
     onNodeDragStop?: (...args: unknown[]) => void
     onNodesDelete?: (...args: unknown[]) => void
+    onConnect?: (connection: unknown) => void
     children?: React.ReactNode
   }) => {
     capturedSnapToGrid = props.snapToGrid
     capturedSnapGrid = props.snapGrid
     capturedOnNodeDragStop = props.onNodeDragStop
     _capturedOnNodesDelete = props.onNodesDelete
+    capturedOnConnect = props.onConnect
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
   },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
   BackgroundVariant: { Dots: 'dots', Lines: 'lines', Cross: 'cross' },
   SelectionMode: { Partial: 'partial', Full: 'full' },
+  ConnectionMode: { Loose: 'loose', Strict: 'strict' },
   applyNodeChanges: vi.fn((_changes: unknown, nodes: unknown) => nodes),
 }))
 
@@ -44,6 +48,7 @@ describe('Canvas', () => {
     capturedSnapGrid = undefined
     capturedOnNodeDragStop = undefined
     _capturedOnNodesDelete = undefined
+    capturedOnConnect = undefined
   })
 
   it('renders canvas-container div', () => {
@@ -155,5 +160,22 @@ describe('Canvas', () => {
 
     expect(useStore.getState().nodes).toHaveLength(1)
     document.body.removeChild(input)
+  })
+
+  it('passes onConnect handler to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedOnConnect).toBeTypeOf('function')
+  })
+
+  it('onConnect calls store addEdge with connection data', () => {
+    const mockAddEdge = vi.fn()
+    useStore.setState({ addEdge: mockAddEdge } as never)
+    render(<Canvas />)
+
+    act(() => {
+      capturedOnConnect?.({ source: 'a', target: 'b', sourceHandle: null, targetHandle: null })
+    })
+
+    expect(mockAddEdge).toHaveBeenCalledWith({ source: 'a', target: 'b', sourceHandle: null, targetHandle: null })
   })
 })

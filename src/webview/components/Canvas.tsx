@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect } from 'react'
 import {
-  ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode,
+  ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode, ConnectionMode,
 } from '@xyflow/react'
-import type { NodeChange, Node } from '@xyflow/react'
+import type { NodeChange, Node, Connection } from '@xyflow/react'
 import { useStore, GRID_SNAP } from '@/lib/store'
 import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
@@ -22,6 +22,7 @@ export default function Canvas(): React.JSX.Element {
   const deselectAll = useStore(s => s.deselectAll)
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
+  const addEdge = useStore(s => s.addEdge)
 
   // Compute dimmed node IDs — pure derivation, not stored
   const dimmedNodeIds = useMemo(
@@ -38,6 +39,11 @@ export default function Canvas(): React.JSX.Element {
         : nodes,
     [nodes, dimmedNodeIds]
   )
+
+  function handleConnect(connection: Connection): void {
+    if (!connection.source || !connection.target) return
+    addEdge(connection as { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null })
+  }
 
   function handleNodeDragStop(
     _event: React.MouseEvent,
@@ -83,7 +89,9 @@ export default function Canvas(): React.JSX.Element {
         edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
+        onConnect={handleConnect}
         onNodeDragStop={handleNodeDragStop}
+        connectionMode={ConnectionMode.Loose}
         snapToGrid={true}
         snapGrid={[GRID_SNAP, GRID_SNAP] as [number, number]}
         colorMode="dark"

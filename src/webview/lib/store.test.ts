@@ -268,4 +268,42 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBe(historyLengthBefore)
     })
   })
+
+  describe('addEdge', () => {
+    it('creates an edge with correct source, target, id, and style', () => {
+      useStore.getState().addEdge({ source: 'a', target: 'b' })
+      const edges = useStore.getState().edges
+      expect(edges).toHaveLength(1)
+      expect(edges[0].id).toBe('e-a-b')
+      expect(edges[0].source).toBe('a')
+      expect(edges[0].target).toBe('b')
+      expect(edges[0].data?.style).toBe('arrow')
+    })
+
+    it('creates exactly one history entry', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().addEdge({ source: 'a', target: 'b' })
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+    })
+
+    it('undo removes the created edge', () => {
+      useStore.getState().addEdge({ source: 'a', target: 'b' })
+      useStore.getState().undo()
+      expect(useStore.getState().edges).toHaveLength(0)
+    })
+
+    it('does not create a duplicate when called twice with same source/target', () => {
+      useStore.getState().addEdge({ source: 'a', target: 'b' })
+      useStore.getState().addEdge({ source: 'a', target: 'b' })
+      expect(useStore.getState().edges).toHaveLength(1)
+      expect(useStore.getState().history.past.length).toBe(1)
+    })
+
+    it('prevents self-loops (source === target)', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().addEdge({ source: 'a', target: 'a' })
+      expect(useStore.getState().edges).toHaveLength(0)
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
 })

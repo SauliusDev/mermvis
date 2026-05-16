@@ -1,0 +1,26 @@
+/* ── Base Edge ──────────────────────────────────────────────────────────────── */
+.react-flow__edge-path {
+  stroke: var(--mv-edge-stroke) !important;
+  stroke-width: 1.5px !important;
+}
+
+/* ── Edge marker (arrow) ────────────────────────────────────────────────────── */
+.react-flow__arrowhead path {
+  fill: var(--mv-edge-stroke) !important;
+}
+
+/* ── Selected edge ──────────────────────────────────────────────────────────── */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--mv-edge-selected) !important;
+}
+
+.react-flow__edge.selected .react-flow__arrowhead path {
+  fill: var(--mv-edge-selected) !important;
+}
+
+/* ── Connection line (rubber-band while dragging) ───────────────────────────── */
+.react-flow__connection-path {
+  stroke: var(--mv-accent) !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 5, 3;
+}

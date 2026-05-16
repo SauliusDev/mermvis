@@ -58,6 +58,7 @@ interface StoreState {
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
+  addEdge: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void
   undo: () => void
   redo: () => void
 }
@@ -117,6 +118,22 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   removeNode: (id) => {
     get().removeNodes([id])
+  },
+
+  addEdge: ({ source, target, sourceHandle, targetHandle }) => {
+    const { nodes, edges } = get()
+    if (source === target) return
+    if (edges.some(e => e.source === source && e.target === target)) return
+    const newEdge: Edge<FlowEdgeData> = {
+      id: `e-${source}-${target}`,
+      source,
+      target,
+      ...(sourceHandle ? { sourceHandle } : {}),
+      ...(targetHandle ? { targetHandle } : {}),
+      data: { style: 'arrow' },
+      type: 'default',
+    }
+    withHistory(get, set, { nodes, edges: [...edges, newEdge] })
   },
 
   updateNodeLabel: (id, label) => {

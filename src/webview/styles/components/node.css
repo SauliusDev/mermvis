@@ -1,4 +1,4 @@
-/* ── Base node layout ──────────────────────────────────────────────────────── */
+/* ── Base Node Layout ──────────────────────────────────────────────────────── */
 .flow-node {
   position: relative;
   min-width: 120px;
@@ -10,7 +10,7 @@
   cursor: grabbing;
 }
 
-/* ── SVG shape background ──────────────────────────────────────────────────── */
+/* ── SVG Shape Background ─────────────────────────────────────────────────── */
 .flow-node__svg {
   position: absolute;
   inset: 0;
@@ -20,7 +20,7 @@
   pointer-events: none;
 }
 
-/* ── Label overlay ─────────────────────────────────────────────────────────── */
+/* ── Label Overlay ─────────────────────────────────────────────────────────── */
 .flow-node__label {
   position: relative;
   z-index: 1;
@@ -36,7 +36,7 @@
   word-break: break-word;
 }
 
-/* ── Inline label editor ───────────────────────────────────────────────────── */
+/* ── Inline Label Editor ───────────────────────────────────────────────────── */
 .flow-node__label-input {
   position: relative;
   z-index: 1;
@@ -55,6 +55,8 @@
   outline: none;
   word-break: break-word;
 }
+
+/* ── Shape Variants ────────────────────────────────────────────────────────── */
 
 /* ── Diamond: square container, smaller label ─────────────────────────────── */
 .flow-node--diamond {
@@ -85,7 +87,7 @@
   min-height: 60px;
 }
 
-/* ── Selection state ───────────────────────────────────────────────────────── */
+/* ── Selection State ───────────────────────────────────────────────────────── */
 .flow-node--selected .flow-node__svg rect,
 .flow-node--selected .flow-node__svg polygon,
 .flow-node--selected .flow-node__svg ellipse,
@@ -97,13 +99,13 @@
   box-shadow: 0 0 0 1px var(--mv-node-selected), 0 0 8px var(--mv-accent-mid);
 }
 
-/* ── Dimming (single selection active; node is not selected or connected) ──── */
+/* ── Dimming (single selection active) ─────────────────────────────────────── */
 .react-flow__node.dimmed .flow-node {
   opacity: var(--mv-dimmed-opacity);
   transition: opacity 0.12s ease;
 }
 
-/* ── NodeResizer handle and line overrides ─────────────────────────────────── */
+/* ── Resize Handles ─────────────────────────────────────────────────────────── */
 .react-flow__resize-control.handle {
   width: 8px !important;
   height: 8px !important;
@@ -116,7 +118,7 @@
   border-color: var(--mv-accent) !important;
 }
 
-/* ── Connect Arrows (placeholder — Story 3.3 adds spawn behavior) ─────────── */
+/* ── Connect Arrows (placeholder — Story 3.3 adds spawn behavior) ──────────── */
 .connect-arrows {
   position: absolute;
   inset: 0;
@@ -152,7 +154,7 @@
 .connect-arrow--bottom { bottom: -14px; left: 50%; transform: translateX(-50%); }
 .connect-arrow--left   { left: -14px;   top: 50%;  transform: translateY(-50%); }
 
-/* ── Connection handles ────────────────────────────────────────────────────── */
+/* ── Connection Handles ─────────────────────────────────────────────────────── */
 .flow-node__handle {
   width: 10px !important;
   height: 10px !important;
