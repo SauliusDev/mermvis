@@ -9,6 +9,7 @@ import './styles/themes/dark.css'
 import './styles/components/node.css'
 import './styles/components/edge.css'
 import './styles/components/sidebar.css'
+import './styles/components/subgraph.css'
 
 export default function App(): React.JSX.Element {
   useEffect(() => {

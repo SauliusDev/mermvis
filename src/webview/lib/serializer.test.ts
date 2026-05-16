@@ -6,8 +6,11 @@ import { serialize } from './serializer'
 type NodeShape = FlowNodeData['shape']
 type EdgeStyle = FlowEdgeData['style']
 
-function makeNode(id: string, label: string, shape: NodeShape): Node<FlowNodeData> {
-  return { id, type: 'default', position: { x: 0, y: 0 }, data: { label, shape } }
+function makeNode(id: string, labelOrOverrides: string | Partial<Node<FlowNodeData>>, shape?: NodeShape): Node<FlowNodeData> {
+  if (typeof labelOrOverrides === 'string') {
+    return { id, type: 'default', position: { x: 0, y: 0 }, data: { label: labelOrOverrides, shape: shape! } }
+  }
+  return { id, type: 'default', position: { x: 0, y: 0 }, data: { label: 'Node', shape: 'rectangle' }, ...labelOrOverrides }
 }
 
 function makeEdge(id: string, source: string, target: string, style?: EdgeStyle, label?: string): Edge<FlowEdgeData> {
@@ -80,5 +83,56 @@ describe('serialize', () => {
     serialize({ nodes, edges })
     expect(nodes).toBe(originalNodesRef)
     expect(edges).toBe(originalEdgesRef)
+  })
+})
+
+describe('subgraph serialization', () => {
+  it('subgraph with no children emits subgraph/end block with no child lines', () => {
+    const subgraphNode = makeNode('SG1', {
+      type: 'subgraphNode',
+      data: { label: 'My Group', shape: 'subgraph', isSubgraph: true },
+    })
+    const result = serialize({ nodes: [subgraphNode], edges: [] })
+    expect(result).toContain('subgraph SG1 [My Group]')
+    expect(result).toContain('  end')
+    const lines = result.split('\n').filter(Boolean)
+    const sgIdx = lines.findIndex(l => l.includes('subgraph SG1'))
+    const endIdx = lines.findIndex(l => l.trim() === 'end')
+    expect(endIdx - sgIdx).toBe(1)
+  })
+
+  it('child node is emitted inside subgraph block with 4-space indent', () => {
+    const subgraphNode = makeNode('SG1', {
+      type: 'subgraphNode',
+      data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+    })
+    const childNode: Node<FlowNodeData> = {
+      id: 'A',
+      type: 'flowNode',
+      position: { x: 0, y: 0 },
+      parentId: 'SG1',
+      extent: 'parent',
+      data: { label: 'Node A', shape: 'rectangle' },
+    }
+    const result = serialize({ nodes: [subgraphNode, childNode], edges: [] })
+    expect(result).toContain('    A[Node A]')
+  })
+
+  it('child node with parentId is NOT emitted in the main node list', () => {
+    const subgraphNode = makeNode('SG1', {
+      type: 'subgraphNode',
+      data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+    })
+    const childNode: Node<FlowNodeData> = {
+      id: 'A',
+      type: 'flowNode',
+      position: { x: 0, y: 0 },
+      parentId: 'SG1',
+      extent: 'parent',
+      data: { label: 'Node A', shape: 'rectangle' },
+    }
+    const result = serialize({ nodes: [subgraphNode, childNode], edges: [] })
+    const occurrences = (result.match(/A\[Node A\]/g) ?? []).length
+    expect(occurrences).toBe(1)
   })
 })

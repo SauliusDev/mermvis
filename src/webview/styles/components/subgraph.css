@@ -1,0 +1,55 @@
+/* ── SubgraphNode ────────────────────────────────────────────────────────── */
+.subgraph-node {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed var(--mv-subgraph-stroke);
+  border-radius: var(--mv-r-lg);
+  background: var(--mv-subgraph-fill);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  pointer-events: all;
+}
+
+.subgraph-node--selected {
+  border-color: var(--mv-accent);
+  box-shadow: 0 0 0 1px var(--mv-accent-mid);
+}
+
+.subgraph-node__header {
+  padding: 4px 8px;
+  border-bottom: 1px dashed var(--mv-subgraph-stroke);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--mv-r-lg) var(--mv-r-lg) 0 0;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.subgraph-node__label {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mv-font-ui);
+  color: var(--mv-text-secondary);
+  cursor: text;
+  user-select: none;
+  white-space: nowrap;
+  display: block;
+}
+
+.subgraph-node__label-input {
+  font-size: 11px;
+  font-family: var(--mv-font-ui);
+  color: var(--mv-text-primary);
+  background: var(--mv-bg-overlay);
+  border: 1px solid var(--mv-border-focus);
+  border-radius: var(--mv-r-sm);
+  padding: 1px 4px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.subgraph-node__body {
+  flex: 1;
+  position: relative;
+}

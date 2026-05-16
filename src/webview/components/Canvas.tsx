@@ -7,6 +7,7 @@ import type { NodeChange, Node, Connection, NodeMouseHandler } from '@xyflow/rea
 import { useStore, useShallow, GRID_SNAP } from '@/lib/store'
 import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
+import SubgraphNode from '@/components/SubgraphNode'
 import FlowEdge from '@/components/FlowEdge'
 import CanvasSidebar from '@/components/CanvasSidebar'
 import { computeDimmedNodeIds, computeConnectedEdgeIds } from '@/lib/selection'
@@ -15,7 +16,7 @@ import { computeDimmedNodeIds, computeConnectedEdgeIds } from '@/lib/selection'
 // React Flow compares nodeTypes by reference on every render. If defined inside
 // the component, it creates a new object each render, causing all nodes to
 // remount and flicker. Module-scope definition = stable reference.
-const nodeTypes = { flowNode: FlowNode }
+const nodeTypes = { flowNode: FlowNode, subgraphNode: SubgraphNode }
 const edgeTypes = { default: FlowEdge }
 
 function CanvasFlow(): React.JSX.Element {

@@ -90,8 +90,47 @@ export function parseMermaidFlowchart(input: string): ParseResult {
       const subMatch = SUBGRAPH_RE.exec(trimmed)
       if (subMatch) {
         const [, id, label] = subMatch
-        nodes.push({ id, type: 'default', position: { x: 0, y: 0 }, data: { label, shape: 'subgraph' } })
-        if (i < rawLines.length && rawLines[i].trim() === 'end') i++
+        nodes.push({
+          id,
+          type: 'subgraphNode',
+          position: { x: 0, y: 0 },
+          data: { label, shape: 'subgraph', isSubgraph: true },
+        })
+        while (i < rawLines.length) {
+          const childLine = rawLines[i].trim()
+          i++
+          if (childLine === 'end') break
+          if (!childLine) continue
+          const cLabeled = LABELED_EDGE_RE.exec(childLine)
+          if (cLabeled) {
+            const [, src, conn, lbl, tgt] = cLabeled
+            const eid = makeEdgeId(src, tgt, edgeIds)
+            edgeIds.add(eid)
+            edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn), label: lbl } })
+            continue
+          }
+          const cUnlabeled = UNLABELED_EDGE_RE.exec(childLine)
+          if (cUnlabeled) {
+            const [, src, conn, tgt] = cUnlabeled
+            const eid = makeEdgeId(src, tgt, edgeIds)
+            edgeIds.add(eid)
+            edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn) } })
+            continue
+          }
+          const childNodeResult = parseNodeLine(childLine)
+          if (childNodeResult) {
+            nodes.push({
+              id: childNodeResult.id,
+              type: 'flowNode',
+              position: { x: 0, y: 0 },
+              parentId: id,
+              extent: 'parent' as const,
+              data: { label: childNodeResult.label, shape: childNodeResult.shape },
+            })
+            continue
+          }
+          passthroughLines.push(childLine)
+        }
         continue
       }
 
@@ -118,7 +157,12 @@ export function parseMermaidFlowchart(input: string): ParseResult {
       // Node declaration
       const nodeResult = parseNodeLine(trimmed)
       if (nodeResult) {
-        nodes.push({ id: nodeResult.id, type: 'default', position: { x: 0, y: 0 }, data: { label: nodeResult.label, shape: nodeResult.shape } })
+        nodes.push({
+          id: nodeResult.id,
+          type: 'flowNode',
+          position: { x: 0, y: 0 },
+          data: { label: nodeResult.label, shape: nodeResult.shape },
+        })
         continue
       }
 

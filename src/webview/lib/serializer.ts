@@ -11,10 +11,21 @@ export interface SerializeInput {
 export function serialize(input: SerializeInput): string {
   const lines: string[] = ['flowchart TD']
 
+  const childNodeIds = new Set(
+    input.nodes.filter(n => n.parentId !== undefined).map(n => n.id)
+  )
+
   for (const node of input.nodes) {
+    if (childNodeIds.has(node.id)) continue
+
     const { id, data: { label, shape } } = node
     if (shape === 'subgraph') {
       lines.push(`  subgraph ${id} [${label}]`)
+      const children = input.nodes.filter(n => n.parentId === id)
+      for (const child of children) {
+        const { open, close } = shapeTemplates[child.data.shape]
+        lines.push(`    ${child.id}${open}${child.data.label}${close}`)
+      }
       lines.push('  end')
     } else {
       const { open, close } = shapeTemplates[shape]

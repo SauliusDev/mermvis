@@ -501,6 +501,40 @@ describe('useStore', () => {
     })
   })
 
+  describe('addSubgraph', () => {
+    it('creates a node with shape subgraph, type subgraphNode, isSubgraph true', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().addSubgraph()
+      const { nodes } = useStore.getState()
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0].type).toBe('subgraphNode')
+      expect(nodes[0].data.shape).toBe('subgraph')
+      expect(nodes[0].data.isSubgraph).toBe(true)
+    })
+
+    it('creates node with default dimensions width=300 height=200', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().addSubgraph()
+      const node = useStore.getState().nodes[0]
+      expect(node.width).toBe(300)
+      expect(node.height).toBe(200)
+    })
+
+    it('creates exactly one history entry', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().addSubgraph()
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('undo removes the created subgraph', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().addSubgraph()
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(0)
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
   describe('setEdgeStyle', () => {
     it('changes edge style and records one history entry', () => {
       useStore.setState({

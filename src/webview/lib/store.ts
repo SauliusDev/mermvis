@@ -24,6 +24,7 @@ export type EdgeStyle =
 export interface FlowNodeData extends Record<string, unknown> {
   label: string
   shape: NodeShape
+  isSubgraph?: boolean
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -52,6 +53,7 @@ interface StoreState {
   }
   pendingConnect: { sourceId: string } | null
   addNode: (node: Node<FlowNodeData>) => void
+  addSubgraph: () => void
   removeNode: (id: string) => void
   removeNodes: (ids: string[]) => void
   applyFlowChanges: (nodes: Node<FlowNodeData>[]) => void
@@ -113,6 +115,20 @@ export const useStore = create<StoreState>()((set, get) => ({
     const { nodes, edges } = get()
     // addNode is never a no-op — always appends
     withHistory(get, set, { nodes: [...nodes, node], edges })
+  },
+
+  addSubgraph: () => {
+    const { nodes, edges } = get()
+    const id = crypto.randomUUID()
+    const newNode: Node<FlowNodeData> = {
+      id,
+      position: { x: 60 + nodes.length * 20, y: 60 },
+      type: 'subgraphNode',
+      width: 300,
+      height: 200,
+      data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+    }
+    withHistory(get, set, { nodes: [...nodes, newNode], edges })
   },
 
   removeNodes: (ids) => {

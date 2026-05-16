@@ -93,10 +93,10 @@ describe('parseMermaidFlowchart', () => {
     expect(result.nodes).toHaveLength(1)
   })
 
-  it('nodes have position { x: 0, y: 0 } and type "default"', () => {
+  it('nodes have position { x: 0, y: 0 } and type "flowNode"', () => {
     const result = asSuccess(parseMermaidFlowchart('flowchart TD\n  A[Label]\n'))
     expect(result.nodes[0].position).toEqual({ x: 0, y: 0 })
-    expect(result.nodes[0].type).toBe('default')
+    expect(result.nodes[0].type).toBe('flowNode')
   })
 
   it('duplicate edges get unique ids with numeric suffix', () => {
@@ -154,5 +154,48 @@ describe('parseMermaidFlowchart', () => {
     const serialized = serialize({ nodes: [makeNode('A', 'Label', 'rectangle')], edges: [], passthroughLines: passthrough })
     const result = asSuccess(parseMermaidFlowchart(serialized))
     expect(result.passthroughLines).toContain('click A href "example.com"')
+  })
+})
+
+describe('subgraph parsing with children', () => {
+  it('subgraph block creates subgraphNode with isSubgraph true', () => {
+    const result = parseMermaidFlowchart('flowchart TD\n  subgraph SG1 [My Group]\n  end\n')
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    const sg = result.nodes.find(n => n.id === 'SG1')
+    expect(sg?.type).toBe('subgraphNode')
+    expect(sg?.data.shape).toBe('subgraph')
+    expect(sg?.data.isSubgraph).toBe(true)
+  })
+
+  it('child node inside subgraph block gets parentId and extent parent', () => {
+    const mmd = 'flowchart TD\n  subgraph SG1 [Group]\n    A[Node A]\n  end\n'
+    const result = parseMermaidFlowchart(mmd)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    const child = result.nodes.find(n => n.id === 'A')
+    expect(child?.type).toBe('flowNode')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((child as any).parentId).toBe('SG1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((child as any).extent).toBe('parent')
+    expect(child?.data.label).toBe('Node A')
+  })
+
+  it('regular node outside subgraph gets type flowNode', () => {
+    const result = parseMermaidFlowchart('flowchart TD\n  A[Node A]\n')
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.nodes[0].type).toBe('flowNode')
+  })
+
+  it('edge inside subgraph block is added to edges array', () => {
+    const mmd = 'flowchart TD\n  subgraph SG1 [Group]\n    A[Node A]\n    B[Node B]\n    A --> B\n  end\n'
+    const result = parseMermaidFlowchart(mmd)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    expect(result.edges.length).toBeGreaterThan(0)
+    const edge = result.edges.find(e => e.source === 'A' && e.target === 'B')
+    expect(edge).toBeDefined()
   })
 })
