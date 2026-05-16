@@ -6,6 +6,7 @@ import type { NodeChange, Node, Connection } from '@xyflow/react'
 import { useStore, GRID_SNAP } from '@/lib/store'
 import type { FlowNodeData } from '@/lib/store'
 import FlowNode from '@/components/FlowNode'
+import FlowEdge from '@/components/FlowEdge'
 import CanvasSidebar from '@/components/CanvasSidebar'
 import { computeDimmedNodeIds } from '@/lib/selection'
 
@@ -14,6 +15,7 @@ import { computeDimmedNodeIds } from '@/lib/selection'
 // the component, it creates a new object each render, causing all nodes to
 // remount and flicker. Module-scope definition = stable reference.
 const nodeTypes = { flowNode: FlowNode }
+const edgeTypes = { default: FlowEdge }
 
 export default function Canvas(): React.JSX.Element {
   const nodes = useStore(s => s.nodes)
@@ -88,6 +90,7 @@ export default function Canvas(): React.JSX.Element {
         nodes={displayNodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={handleNodesChange}
         onConnect={handleConnect}
         onNodeDragStop={handleNodeDragStop}

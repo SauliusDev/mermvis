@@ -10,6 +10,7 @@ let capturedSnapGrid: [number, number] | undefined
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
 let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
 let capturedOnConnect: ((connection: unknown) => void) | undefined
+let capturedEdgeTypes: unknown
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
@@ -18,6 +19,7 @@ vi.mock('@xyflow/react', () => ({
     onNodeDragStop?: (...args: unknown[]) => void
     onNodesDelete?: (...args: unknown[]) => void
     onConnect?: (connection: unknown) => void
+    edgeTypes?: unknown
     children?: React.ReactNode
   }) => {
     capturedSnapToGrid = props.snapToGrid
@@ -25,6 +27,7 @@ vi.mock('@xyflow/react', () => ({
     capturedOnNodeDragStop = props.onNodeDragStop
     _capturedOnNodesDelete = props.onNodesDelete
     capturedOnConnect = props.onConnect
+    capturedEdgeTypes = props.edgeTypes
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
   },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
@@ -49,6 +52,7 @@ describe('Canvas', () => {
     capturedOnNodeDragStop = undefined
     _capturedOnNodesDelete = undefined
     capturedOnConnect = undefined
+    capturedEdgeTypes = undefined
   })
 
   it('renders canvas-container div', () => {
@@ -177,5 +181,10 @@ describe('Canvas', () => {
     })
 
     expect(mockAddEdge).toHaveBeenCalledWith({ source: 'a', target: 'b', sourceHandle: null, targetHandle: null })
+  })
+
+  it('edgeTypes prop registers FlowEdge as the default edge type', () => {
+    render(<Canvas />)
+    expect(capturedEdgeTypes).toHaveProperty('default')
   })
 })

@@ -59,6 +59,7 @@ interface StoreState {
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
   addEdge: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void
+  setEdgeStyle: (id: string, style: EdgeStyle) => void
   undo: () => void
   redo: () => void
 }
@@ -118,6 +119,19 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   removeNode: (id) => {
     get().removeNodes([id])
+  },
+
+  setEdgeStyle: (id, style) => {
+    const { nodes, edges } = get()
+    const edge = edges.find(e => e.id === id)
+    if (!edge) return
+    if (edge.data?.style === style) return
+    withHistory(get, set, {
+      nodes,
+      edges: edges.map(e =>
+        e.id === id ? { ...e, data: { ...e.data, style } } : e
+      ),
+    })
   },
 
   addEdge: ({ source, target, sourceHandle, targetHandle }) => {

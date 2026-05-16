@@ -24,3 +24,68 @@
   stroke-width: 1.5px !important;
   stroke-dasharray: 5, 3;
 }
+
+/* ── FlowEdge Path ──────────────────────────────────────────────────────────── */
+.react-flow__edge-path.flow-edge__path {
+  stroke: var(--mv-edge-stroke);
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+.react-flow__edge-path.flow-edge__path--dotted {
+  stroke-dasharray: 4 3;
+}
+
+/* !important needed to override the existing base rule's !important */
+.react-flow__edge-path.flow-edge__path--thick {
+  stroke-width: 2.5px !important;
+}
+
+/* !important needed to override the existing base rule's !important */
+.react-flow__edge-path.flow-edge__path--selected {
+  stroke: var(--mv-edge-selected) !important;
+}
+
+/* ── FlowEdge Arrowhead Markers ─────────────────────────────────────────────── */
+.flow-edge__arrowhead {
+  fill: var(--mv-edge-stroke);
+}
+
+.flow-edge__arrowhead--selected {
+  fill: var(--mv-edge-selected);
+}
+
+/* ── Edge Style Toolbar ─────────────────────────────────────────────────────── */
+.flow-edge__toolbar {
+  display: flex;
+  gap: 2px;
+  background: var(--mv-bg-elevated);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-r-sm);
+  padding: 3px;
+  box-shadow: var(--mv-shadow-sm);
+}
+
+.flow-edge__style-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mv-r-sm);
+  color: var(--mv-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.flow-edge__style-btn:hover {
+  background: var(--mv-bg-hover);
+  color: var(--mv-text-primary);
+}
+
+.flow-edge__style-btn--active {
+  background: var(--mv-accent-dim);
+  color: var(--mv-accent);
+}

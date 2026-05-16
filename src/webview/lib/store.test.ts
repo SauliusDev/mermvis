@@ -7,6 +7,7 @@ vi.mock('zustand')
 
 import { useStore, MAX_HISTORY, GRID_SNAP } from './store'
 import type { FlowEdgeData, FlowNodeData } from './store'
+import { makeEdge } from '@/test/store-helpers'
 
 function makeNode(id: string, overrides: Partial<Node<FlowNodeData>> = {}): Node<FlowNodeData> {
   return {
@@ -304,6 +305,46 @@ describe('useStore', () => {
       useStore.getState().addEdge({ source: 'a', target: 'a' })
       expect(useStore.getState().edges).toHaveLength(0)
       expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
+  describe('setEdgeStyle', () => {
+    it('changes edge style and records one history entry', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().setEdgeStyle('e1', 'dotted')
+      expect(useStore.getState().edges[0].data?.style).toBe('dotted')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('undo() after setEdgeStyle reverts to previous style', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().setEdgeStyle('e1', 'thick')
+      useStore.getState().undo()
+      expect(useStore.getState().edges[0].data?.style).toBe('arrow')
+    })
+
+    it('setting same style is a no-op — no history entry created', () => {
+      useStore.setState({
+        nodes: [],
+        edges: [makeEdge('e1', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().setEdgeStyle('e1', 'arrow')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('non-existent edge id is a no-op — no history entry created', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().setEdgeStyle('nonexistent', 'dotted')
+      expect(useStore.getState().history.past).toHaveLength(0)
     })
   })
 })
