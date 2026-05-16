@@ -5,8 +5,6 @@ export function findDropTargetSubgraph(
   draggedNode: Node<FlowNodeData>,
   allNodes: Node<FlowNodeData>[]
 ): string | null {
-  if (draggedNode.data.isSubgraph) return null
-
   const nodeW = draggedNode.measured?.width ?? 80
   const nodeH = draggedNode.measured?.height ?? 40
   const cx = draggedNode.position.x + nodeW / 2
@@ -18,6 +16,8 @@ export function findDropTargetSubgraph(
   for (const sg of allNodes) {
     if (!sg.data.isSubgraph) continue
     if (sg.id === draggedNode.parentId) continue
+    if (sg.id === draggedNode.id) continue
+    if (sg.parentId === draggedNode.id) continue
 
     const sgW = sg.width ?? sg.measured?.width ?? 300
     const sgH = sg.height ?? sg.measured?.height ?? 200

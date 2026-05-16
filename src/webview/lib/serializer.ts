@@ -8,6 +8,23 @@ export interface SerializeInput {
   passthroughLines?: string[]
 }
 
+function serializeBlock(
+  node: Node<FlowNodeData>,
+  input: SerializeInput,
+  indent: string
+): string[] {
+  if (node.data.shape === 'subgraph') {
+    const children = input.nodes.filter(n => n.parentId === node.id)
+    return [
+      `${indent}subgraph ${node.id} [${node.data.label}]`,
+      ...children.flatMap(c => serializeBlock(c, input, indent + '  ')),
+      `${indent}end`,
+    ]
+  }
+  const { open, close } = shapeTemplates[node.data.shape]
+  return [`${indent}${node.id}${open}${node.data.label}${close}`]
+}
+
 export function serialize(input: SerializeInput): string {
   const lines: string[] = ['flowchart TD']
 
@@ -17,20 +34,7 @@ export function serialize(input: SerializeInput): string {
 
   for (const node of input.nodes) {
     if (childNodeIds.has(node.id)) continue
-
-    const { id, data: { label, shape } } = node
-    if (shape === 'subgraph') {
-      lines.push(`  subgraph ${id} [${label}]`)
-      const children = input.nodes.filter(n => n.parentId === id)
-      for (const child of children) {
-        const { open, close } = shapeTemplates[child.data.shape]
-        lines.push(`    ${child.id}${open}${child.data.label}${close}`)
-      }
-      lines.push('  end')
-    } else {
-      const { open, close } = shapeTemplates[shape]
-      lines.push(`  ${id}${open}${label}${close}`)
-    }
+    lines.push(...serializeBlock(node, input, '  '))
   }
 
   for (const edge of input.edges) {

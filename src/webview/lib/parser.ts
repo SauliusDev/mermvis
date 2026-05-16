@@ -63,6 +63,72 @@ function parseNodeLine(text: string): { id: string; shape: NodeShape; label: str
   return null
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parseSubgraphChildren(
+  rawLines: string[],
+  startIndex: number,
+  parentId: string,
+  nodes: Node<FlowNodeData>[],
+  edges: Edge<FlowEdgeData>[],
+  edgeIds: Set<string>,
+  passthroughLines: string[]
+): number {
+  let i = startIndex
+  while (i < rawLines.length) {
+    const childLine = rawLines[i].trim()
+    i++
+    if (childLine === 'end') break
+    if (!childLine) continue
+
+    const nestedMatch = SUBGRAPH_RE.exec(childLine)
+    if (nestedMatch) {
+      const [, nestedId, nestedLabel] = nestedMatch
+      nodes.push({
+        id: nestedId,
+        type: 'subgraphNode',
+        position: { x: 0, y: 0 },
+        parentId,
+        extent: 'parent' as const,
+        data: { label: nestedLabel, shape: 'subgraph', isSubgraph: true },
+      })
+      i = parseSubgraphChildren(rawLines, i, nestedId, nodes, edges, edgeIds, passthroughLines)
+      continue
+    }
+
+    const cLabeled = LABELED_EDGE_RE.exec(childLine)
+    if (cLabeled) {
+      const [, src, conn, lbl, tgt] = cLabeled
+      const eid = makeEdgeId(src, tgt, edgeIds)
+      edgeIds.add(eid)
+      edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn), label: lbl } })
+      continue
+    }
+    const cUnlabeled = UNLABELED_EDGE_RE.exec(childLine)
+    if (cUnlabeled) {
+      const [, src, conn, tgt] = cUnlabeled
+      const eid = makeEdgeId(src, tgt, edgeIds)
+      edgeIds.add(eid)
+      edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn) } })
+      continue
+    }
+    const childNodeResult = parseNodeLine(childLine)
+    if (childNodeResult) {
+      nodes.push({
+        id: childNodeResult.id,
+        type: 'flowNode',
+        position: { x: 0, y: 0 },
+        parentId,
+        extent: 'parent' as const,
+        data: { label: childNodeResult.label, shape: childNodeResult.shape },
+      })
+      continue
+    }
+    passthroughLines.push(childLine)
+  }
+  return i
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 export function parseMermaidFlowchart(input: string): ParseResult {
@@ -96,41 +162,7 @@ export function parseMermaidFlowchart(input: string): ParseResult {
           position: { x: 0, y: 0 },
           data: { label, shape: 'subgraph', isSubgraph: true },
         })
-        while (i < rawLines.length) {
-          const childLine = rawLines[i].trim()
-          i++
-          if (childLine === 'end') break
-          if (!childLine) continue
-          const cLabeled = LABELED_EDGE_RE.exec(childLine)
-          if (cLabeled) {
-            const [, src, conn, lbl, tgt] = cLabeled
-            const eid = makeEdgeId(src, tgt, edgeIds)
-            edgeIds.add(eid)
-            edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn), label: lbl } })
-            continue
-          }
-          const cUnlabeled = UNLABELED_EDGE_RE.exec(childLine)
-          if (cUnlabeled) {
-            const [, src, conn, tgt] = cUnlabeled
-            const eid = makeEdgeId(src, tgt, edgeIds)
-            edgeIds.add(eid)
-            edges.push({ id: eid, source: src, target: tgt, data: { style: getEdgeStyle(conn) } })
-            continue
-          }
-          const childNodeResult = parseNodeLine(childLine)
-          if (childNodeResult) {
-            nodes.push({
-              id: childNodeResult.id,
-              type: 'flowNode',
-              position: { x: 0, y: 0 },
-              parentId: id,
-              extent: 'parent' as const,
-              data: { label: childNodeResult.label, shape: childNodeResult.shape },
-            })
-            continue
-          }
-          passthroughLines.push(childLine)
-        }
+        i = parseSubgraphChildren(rawLines, i, id, nodes, edges, edgeIds, passthroughLines)
         continue
       }
 

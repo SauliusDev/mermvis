@@ -50,16 +50,39 @@ describe('findDropTargetSubgraph', () => {
     expect(findDropTargetSubgraph(node, [large, small, node])).toBe('SMALL')
   })
 
-  it('returns null when dragged node is itself a subgraph', () => {
+  it('returns target subgraph when dragged node is a subgraph positioned over it', () => {
+    // SG2 center = (50 + 50, 50 + 50) = (100, 100) — inside SG1 [0-300, 0-200]
     const sg = makeSubgraphNode('SG1', { x: 0, y: 0 }, 300, 200)
     const dragged = makeSubgraphNode('SG2', { x: 50, y: 50 }, 100, 100)
-    expect(findDropTargetSubgraph(dragged, [sg, dragged])).toBeNull()
+    expect(findDropTargetSubgraph(dragged, [sg, dragged])).toBe('SG1')
   })
 
   it("skips the node's current parent (no self-reassignment)", () => {
     const sg = makeSubgraphNode('SG1', { x: 0, y: 0 }, 300, 200)
     const child = { ...makeFlowNode('A', { x: 50, y: 50 }), parentId: 'SG1' }
     expect(findDropTargetSubgraph(child, [sg, child])).toBeNull()
+  })
+})
+
+describe('subgraph-to-subgraph nesting', () => {
+  it('dragged subgraph over outer subgraph → returns outer subgraph ID', () => {
+    const outer = makeSubgraphNode('OUTER', { x: 0, y: 0 }, 500, 400)
+    const dragged = makeSubgraphNode('INNER', { x: 100, y: 100 }, 100, 100)
+    // dragged center: (150, 150) — inside OUTER
+    expect(findDropTargetSubgraph(dragged, [outer, dragged])).toBe('OUTER')
+  })
+
+  it('dragged subgraph over its own direct child subgraph → returns null (circular prevention)', () => {
+    const sgA = makeSubgraphNode('SG_A', { x: 0, y: 0 }, 500, 400)
+    // SG_B is a direct child of SG_A (parentId = 'SG_A')
+    const sgB = { ...makeSubgraphNode('SG_B', { x: 50, y: 50 }, 300, 200), parentId: 'SG_A' }
+    // Drag SG_A over SG_B → should return null (can't assign parent into its child)
+    expect(findDropTargetSubgraph(sgA, [sgA, sgB])).toBeNull()
+  })
+
+  it('dragged subgraph over itself → returns null (self-assignment prevention)', () => {
+    const sg = makeSubgraphNode('SG1', { x: 0, y: 0 }, 300, 200)
+    expect(findDropTargetSubgraph(sg, [sg])).toBeNull()
   })
 })
 

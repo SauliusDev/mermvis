@@ -138,8 +138,28 @@ export const useStore = create<StoreState>()((set, get) => ({
     const idSet = new Set(ids)
     const nextNodes = nodes.filter(n => !idSet.has(n.id))
     if (nextNodes.length === nodes.length) return  // none matched — no-op
+
+    // Promote direct children of deleted subgraphs to top-level
+    const deletedSubgraphIds = nodes
+      .filter(n => idSet.has(n.id) && n.data.isSubgraph)
+      .map(n => n.id)
+
+    let result = nextNodes
+    if (deletedSubgraphIds.length > 0) {
+      const deletedSgSet = new Set(deletedSubgraphIds)
+      result = nextNodes.map(n => {
+        if (!n.parentId || !deletedSgSet.has(n.parentId)) return n
+        const sg = nodes.find(p => p.id === n.parentId)!
+        const { parentId: _p, extent: _e, ...rest } = n
+        return {
+          ...rest,
+          position: { x: n.position.x + sg.position.x, y: n.position.y + sg.position.y },
+        }
+      })
+    }
+
     const nextEdges = edges.filter(e => !idSet.has(e.source) && !idSet.has(e.target))
-    withHistory(get, set, { nodes: nextNodes, edges: nextEdges })
+    withHistory(get, set, { nodes: result, edges: nextEdges })
   },
 
   removeNode: (id) => {
@@ -263,6 +283,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       ...node,
       parentId: subgraphId,
       position: relativePosition,
+      extent: 'parent' as const,
     }
     // React Flow requires parent to appear before its children in the array.
     const otherNodes = nodes.filter(n => n.id !== nodeId)

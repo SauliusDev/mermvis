@@ -86,7 +86,6 @@ function CanvasFlow(): React.JSX.Element {
     _event: React.MouseEvent,
     draggedNode: Node<FlowNodeData>,
   ): void {
-    if (draggedNode.data.isSubgraph) { setDropTargetId(null); return }
     if (draggedNode.parentId) { setDropTargetId(null); return }
     const allNodes = useStore.getState().nodes
     setDropTargetId(findDropTargetSubgraph(draggedNode, allNodes))

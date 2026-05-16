@@ -563,13 +563,13 @@ describe('useStore', () => {
       expect(updated?.position).toEqual({ x: 50, y: 50 })
     })
 
-    it('does NOT set extent: "parent" (deferred to Story 4-3)', () => {
+    it('sets extent: "parent" for containment', () => {
       const sg = makeSubgraph('SG1')
       const node = makeNode('A')
       useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
       useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
       const updated = useStore.getState().nodes.find(n => n.id === 'A')
-      expect(updated?.extent).toBeUndefined()
+      expect(updated?.extent).toBe('parent')
     })
 
     it('parent subgraph appears before child in nodes array', () => {
@@ -628,6 +628,89 @@ describe('useStore', () => {
       useStore.setState({ nodes: [node], edges: [], history: { past: [], future: [] } })
       useStore.getState().removeFromSubgraph('A', { x: 0, y: 0 })
       expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
+  describe('removeNodes — subgraph deletion with child promotion', () => {
+    function makeSubgraph(id: string, pos = { x: 100, y: 100 }): Node<FlowNodeData> {
+      return makeNode(id, {
+        type: 'subgraphNode',
+        data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+        position: pos,
+        width: 300,
+        height: 200,
+      })
+    }
+
+    function makeChild(id: string, parentId: string, pos = { x: 50, y: 50 }): Node<FlowNodeData> {
+      return { ...makeNode(id, { position: pos }), parentId, extent: 'parent' as const }
+    }
+
+    it('deleting subgraph promotes child regular node to top-level (parentId cleared)', () => {
+      const sg = makeSubgraph('SG1', { x: 100, y: 100 })
+      const child = makeChild('A', 'SG1', { x: 50, y: 50 })
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeNodes(['SG1'])
+      const promoted = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(promoted?.parentId).toBeUndefined()
+    })
+
+    it('promoted child position is absolute (parent.pos + child.pos)', () => {
+      const sg = makeSubgraph('SG1', { x: 100, y: 100 })
+      const child = makeChild('A', 'SG1', { x: 50, y: 60 })
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeNodes(['SG1'])
+      const promoted = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(promoted?.position).toEqual({ x: 150, y: 160 })
+    })
+
+    it('promoted child has extent cleared', () => {
+      const sg = makeSubgraph('SG1', { x: 0, y: 0 })
+      const child = makeChild('A', 'SG1', { x: 20, y: 20 })
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeNodes(['SG1'])
+      const promoted = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(promoted?.extent).toBeUndefined()
+    })
+
+    it('deleting subgraph that contains a nested subgraph promotes the nested subgraph to top-level', () => {
+      const outer = makeSubgraph('OUTER', { x: 0, y: 0 })
+      const inner = { ...makeSubgraph('INNER', { x: 10, y: 10 }), parentId: 'OUTER', extent: 'parent' as const }
+      useStore.setState({ nodes: [outer, inner], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeNodes(['OUTER'])
+      const promotedInner = useStore.getState().nodes.find(n => n.id === 'INNER')
+      expect(promotedInner).toBeDefined()
+      expect(promotedInner?.parentId).toBeUndefined()
+    })
+
+    it('deletion + promotion creates exactly one undo-able history entry', () => {
+      const sg = makeSubgraph('SG1', { x: 0, y: 0 })
+      const child = makeChild('A', 'SG1', { x: 20, y: 20 })
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      const before = useStore.getState().history.past.length
+      useStore.getState().removeNodes(['SG1'])
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+      useStore.getState().undo()
+      expect(useStore.getState().nodes.find(n => n.id === 'SG1')).toBeDefined()
+      expect(useStore.getState().nodes.find(n => n.id === 'A')?.parentId).toBe('SG1')
+    })
+
+    it('edges connected to deleted subgraph are removed but edges between promoted children are preserved', () => {
+      const sg = makeSubgraph('SG1', { x: 0, y: 0 })
+      const childA = makeChild('A', 'SG1', { x: 20, y: 20 })
+      const childB = makeChild('B', 'SG1', { x: 60, y: 20 })
+      useStore.setState({
+        nodes: [sg, childA, childB],
+        edges: [
+          makeEdge('e-sg-a', 'SG1', 'A'),
+          makeEdge('e-a-b', 'A', 'B'),
+        ],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().removeNodes(['SG1'])
+      const { edges } = useStore.getState()
+      expect(edges.find(e => e.id === 'e-sg-a')).toBeUndefined()
+      expect(edges.find(e => e.id === 'e-a-b')).toBeDefined()
     })
   })
 

@@ -136,3 +136,61 @@ describe('subgraph serialization', () => {
     expect(occurrences).toBe(1)
   })
 })
+
+describe('nested subgraph serialization', () => {
+  it('nested subgraph produces outer block containing inner block', () => {
+    const outer: Node<FlowNodeData> = {
+      id: 'OUTER',
+      type: 'subgraphNode',
+      position: { x: 0, y: 0 },
+      data: { label: 'Outer Group', shape: 'subgraph', isSubgraph: true },
+    }
+    const inner: Node<FlowNodeData> = {
+      id: 'INNER',
+      type: 'subgraphNode',
+      position: { x: 10, y: 10 },
+      parentId: 'OUTER',
+      extent: 'parent',
+      data: { label: 'Inner Group', shape: 'subgraph', isSubgraph: true },
+    }
+    const result = serialize({ nodes: [outer, inner], edges: [] })
+    expect(result).toContain('  subgraph OUTER [Outer Group]')
+    expect(result).toContain('    subgraph INNER [Inner Group]')
+    expect(result).toContain('    end')
+    expect(result).toContain('  end')
+    const lines = result.split('\n')
+    const outerIdx = lines.findIndex(l => l.includes('subgraph OUTER'))
+    const innerIdx = lines.findIndex(l => l.includes('subgraph INNER'))
+    const innerEndIdx = lines.findIndex((l, i) => i > innerIdx && l.trim() === 'end')
+    const outerEndIdx = lines.findIndex((l, i) => i > innerEndIdx && l.trim() === 'end')
+    expect(outerIdx).toBeLessThan(innerIdx)
+    expect(innerEndIdx).toBeLessThan(outerEndIdx)
+  })
+
+  it('regular node inside nested subgraph emits with 6-space indent', () => {
+    const outer: Node<FlowNodeData> = {
+      id: 'OUTER',
+      type: 'subgraphNode',
+      position: { x: 0, y: 0 },
+      data: { label: 'Outer', shape: 'subgraph', isSubgraph: true },
+    }
+    const inner: Node<FlowNodeData> = {
+      id: 'INNER',
+      type: 'subgraphNode',
+      position: { x: 10, y: 10 },
+      parentId: 'OUTER',
+      extent: 'parent',
+      data: { label: 'Inner', shape: 'subgraph', isSubgraph: true },
+    }
+    const deepChild: Node<FlowNodeData> = {
+      id: 'N1',
+      type: 'flowNode',
+      position: { x: 5, y: 5 },
+      parentId: 'INNER',
+      extent: 'parent',
+      data: { label: 'Deep Node', shape: 'rectangle' },
+    }
+    const result = serialize({ nodes: [outer, inner, deepChild], edges: [] })
+    expect(result).toContain('      N1[Deep Node]')
+  })
+})

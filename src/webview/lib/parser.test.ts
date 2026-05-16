@@ -199,3 +199,60 @@ describe('subgraph parsing with children', () => {
     expect(edge).toBeDefined()
   })
 })
+
+describe('nested subgraph parsing', () => {
+  const nestedMmd = [
+    'flowchart TD',
+    '  subgraph OUTER [Outer Group]',
+    '    subgraph INNER [Inner Group]',
+    '      N1[Deep Node]',
+    '    end',
+    '  end',
+    '',
+  ].join('\n')
+
+  it('inner subgraph node has parentId pointing to outer subgraph and extent: parent', () => {
+    const result = parseMermaidFlowchart(nestedMmd)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    const inner = result.nodes.find(n => n.id === 'INNER')
+    expect(inner).toBeDefined()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((inner as any).parentId).toBe('OUTER')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((inner as any).extent).toBe('parent')
+  })
+
+  it('children of inner subgraph have parentId pointing to inner subgraph', () => {
+    const result = parseMermaidFlowchart(nestedMmd)
+    expect('error' in result).toBe(false)
+    if ('error' in result) return
+    const deepNode = result.nodes.find(n => n.id === 'N1')
+    expect(deepNode).toBeDefined()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((deepNode as any).parentId).toBe('INNER')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((deepNode as any).extent).toBe('parent')
+  })
+
+  it('round-trip: serialize(parse(nestedMmd)) produces identical output', () => {
+    const parseResult = parseMermaidFlowchart(nestedMmd)
+    expect('error' in parseResult).toBe(false)
+    if ('error' in parseResult) return
+    const serialized = serialize({ nodes: parseResult.nodes, edges: parseResult.edges })
+    const reParseResult = parseMermaidFlowchart(serialized)
+    expect('error' in reParseResult).toBe(false)
+    if ('error' in reParseResult) return
+    const outer1 = parseResult.nodes.find(n => n.id === 'OUTER')
+    const outer2 = reParseResult.nodes.find(n => n.id === 'OUTER')
+    expect(outer2?.data.label).toBe(outer1?.data.label)
+    const inner1 = parseResult.nodes.find(n => n.id === 'INNER')
+    const inner2 = reParseResult.nodes.find(n => n.id === 'INNER')
+    expect(inner2?.data.label).toBe(inner1?.data.label)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((inner2 as any).parentId).toBe('OUTER')
+    const deep2 = reParseResult.nodes.find(n => n.id === 'N1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((deep2 as any).parentId).toBe('INNER')
+  })
+})
