@@ -535,6 +535,102 @@ describe('useStore', () => {
     })
   })
 
+  describe('assignToSubgraph', () => {
+    const makeSubgraph = (id: string, pos = { x: 100, y: 100 }) =>
+      makeNode(id, {
+        type: 'subgraphNode',
+        data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+        position: pos,
+        width: 300,
+        height: 200,
+      })
+
+    it('sets parentId on the node', () => {
+      const sg = makeSubgraph('SG1')
+      const node = makeNode('A', { position: { x: 150, y: 150 } })
+      useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
+      const updated = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(updated?.parentId).toBe('SG1')
+    })
+
+    it('sets position to provided relative coords', () => {
+      const sg = makeSubgraph('SG1')
+      const node = makeNode('A')
+      useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
+      const updated = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(updated?.position).toEqual({ x: 50, y: 50 })
+    })
+
+    it('does NOT set extent: "parent" (deferred to Story 4-3)', () => {
+      const sg = makeSubgraph('SG1')
+      const node = makeNode('A')
+      useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
+      const updated = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(updated?.extent).toBeUndefined()
+    })
+
+    it('parent subgraph appears before child in nodes array', () => {
+      const sg = makeSubgraph('SG1')
+      const node = makeNode('A')
+      useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
+      const { nodes } = useStore.getState()
+      const sgIdx = nodes.findIndex(n => n.id === 'SG1')
+      const nodeIdx = nodes.findIndex(n => n.id === 'A')
+      expect(sgIdx).toBeLessThan(nodeIdx)
+    })
+
+    it('no-op when node already has same parentId (no history entry)', () => {
+      const sg = makeSubgraph('SG1')
+      const node = { ...makeNode('A'), parentId: 'SG1' }
+      useStore.setState({ nodes: [sg, node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().assignToSubgraph('A', 'SG1', { x: 50, y: 50 })
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
+  describe('removeFromSubgraph', () => {
+    it('clears parentId from the node', () => {
+      const sg = makeNode('SG1', {
+        type: 'subgraphNode',
+        data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
+        position: { x: 100, y: 100 },
+      })
+      const child = { ...makeNode('A', { position: { x: 50, y: 50 } }), parentId: 'SG1' }
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeFromSubgraph('A', { x: 150, y: 150 })
+      const updated = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(updated?.parentId).toBeUndefined()
+    })
+
+    it('sets absolute position to provided coords', () => {
+      const sg = makeNode('SG1', { data: { label: 'G', shape: 'subgraph', isSubgraph: true }, position: { x: 100, y: 100 } })
+      const child = { ...makeNode('A', { position: { x: 50, y: 50 } }), parentId: 'SG1' }
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeFromSubgraph('A', { x: 200, y: 180 })
+      const updated = useStore.getState().nodes.find(n => n.id === 'A')
+      expect(updated?.position).toEqual({ x: 200, y: 180 })
+    })
+
+    it('creates exactly one history entry', () => {
+      const sg = makeNode('SG1', { data: { label: 'G', shape: 'subgraph', isSubgraph: true }, position: { x: 0, y: 0 } })
+      const child = { ...makeNode('A'), parentId: 'SG1' }
+      useStore.setState({ nodes: [sg, child], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeFromSubgraph('A', { x: 0, y: 0 })
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('no-op when node has no parentId (no history entry)', () => {
+      const node = makeNode('A')
+      useStore.setState({ nodes: [node], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeFromSubgraph('A', { x: 0, y: 0 })
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
   describe('setEdgeStyle', () => {
     it('changes edge style and records one history entry', () => {
       useStore.setState({

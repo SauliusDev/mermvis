@@ -1,11 +1,12 @@
-import React, { useMemo, useEffect, useCallback } from 'react'
+import React, { useMemo, useEffect, useCallback, useState } from 'react'
 import {
   ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode, ConnectionMode,
   ReactFlowProvider, useReactFlow,
 } from '@xyflow/react'
-import type { NodeChange, Node, Connection, NodeMouseHandler } from '@xyflow/react'
+import type { NodeChange, Node, Connection, NodeMouseHandler, XYPosition } from '@xyflow/react'
 import { useStore, useShallow, GRID_SNAP } from '@/lib/store'
 import type { FlowNodeData } from '@/lib/store'
+import { findDropTargetSubgraph, isNodeOutsideParent, toRelativePosition, toAbsolutePosition } from '@/lib/subgraphHitTest'
 import FlowNode from '@/components/FlowNode'
 import SubgraphNode from '@/components/SubgraphNode'
 import FlowEdge from '@/components/FlowEdge'
@@ -28,6 +29,8 @@ function CanvasFlow(): React.JSX.Element {
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
   const removeEdges = useStore(s => s.removeEdges)
+  const assignToSubgraph = useStore(s => s.assignToSubgraph)
+  const removeFromSubgraph = useStore(s => s.removeFromSubgraph)
   const { pendingConnect, setPendingConnect, spawnConnectedNode, addEdge } = useStore(
     useShallow(s => ({
       pendingConnect: s.pendingConnect,
@@ -37,21 +40,29 @@ function CanvasFlow(): React.JSX.Element {
     }))
   )
 
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+
   // Compute dimmed node IDs — pure derivation, not stored
   const dimmedNodeIds = useMemo(
     () => computeDimmedNodeIds(nodes, edges),
     [nodes, edges]
   )
 
-  // Build display nodes: add className='dimmed' where needed.
+  // Build display nodes: apply className='dimmed' and/or 'drop-target' where needed.
   // Uses original `nodes` reference when nothing to dim (avoids unnecessary re-render).
-  const displayNodes = useMemo(
-    () =>
-      dimmedNodeIds.size > 0
-        ? nodes.map(n => dimmedNodeIds.has(n.id) ? { ...n, className: 'dimmed' } : n)
-        : nodes,
-    [nodes, dimmedNodeIds]
-  )
+  const displayNodes = useMemo(() => {
+    let result = dimmedNodeIds.size > 0
+      ? nodes.map(n => dimmedNodeIds.has(n.id) ? { ...n, className: 'dimmed' } : n)
+      : nodes
+    if (dropTargetId) {
+      result = result.map(n =>
+        n.id === dropTargetId
+          ? { ...n, className: [n.className, 'drop-target'].filter(Boolean).join(' ') }
+          : n
+      )
+    }
+    return result
+  }, [nodes, dimmedNodeIds, dropTargetId])
 
   const connectedEdgeIds = useMemo(
     () => computeConnectedEdgeIds(nodes, edges),
@@ -71,12 +82,46 @@ function CanvasFlow(): React.JSX.Element {
     addEdge(connection as { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null })
   }
 
+  function handleNodeDrag(
+    _event: React.MouseEvent,
+    draggedNode: Node<FlowNodeData>,
+  ): void {
+    if (draggedNode.data.isSubgraph) { setDropTargetId(null); return }
+    if (draggedNode.parentId) { setDropTargetId(null); return }
+    const allNodes = useStore.getState().nodes
+    setDropTargetId(findDropTargetSubgraph(draggedNode, allNodes))
+  }
+
   function handleNodeDragStop(
     _event: React.MouseEvent,
     _node: Node<FlowNodeData>,
     draggedNodes: Node<FlowNodeData>[]
   ): void {
-    moveNodes(draggedNodes.map(n => ({ id: n.id, position: n.position })))
+    setDropTargetId(null)
+    const allNodes = useStore.getState().nodes
+    const toMove: Array<{ id: string; position: XYPosition }> = []
+    for (const draggedNode of draggedNodes) {
+      if (draggedNode.parentId) {
+        const parent = allNodes.find(n => n.id === draggedNode.parentId)
+        if (parent && isNodeOutsideParent(draggedNode, parent)) {
+          const absPos = toAbsolutePosition(draggedNode.position, parent.position)
+          removeFromSubgraph(draggedNode.id, absPos)
+        } else if (parent) {
+          toMove.push({ id: draggedNode.id, position: draggedNode.position })
+        }
+        // if !parent: parentId is stale (parent deleted); skip to avoid pushing relative coords as absolute
+      } else {
+        const targetId = findDropTargetSubgraph(draggedNode, allNodes)
+        if (targetId) {
+          const sg = allNodes.find(n => n.id === targetId)!
+          const relPos = toRelativePosition(draggedNode.position, sg.position)
+          assignToSubgraph(draggedNode.id, targetId, relPos)
+        } else {
+          toMove.push({ id: draggedNode.id, position: draggedNode.position })
+        }
+      }
+    }
+    if (toMove.length > 0) moveNodes(toMove)
   }
 
   function handleNodesChange(changes: NodeChange[]): void {
@@ -145,6 +190,7 @@ function CanvasFlow(): React.JSX.Element {
         edgeTypes={edgeTypes}
         onNodesChange={handleNodesChange}
         onConnect={handleConnect}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}

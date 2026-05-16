@@ -53,3 +53,10 @@
   flex: 1;
   position: relative;
 }
+
+/* ── Drag-to-assign drop-target highlight ─────────────────────────────────── */
+.react-flow__node.drop-target .subgraph-node {
+  border-color: var(--mv-accent);
+  border-style: solid;
+  box-shadow: 0 0 0 2px var(--mv-accent-mid);
+}

@@ -66,6 +66,8 @@ interface StoreState {
   updateEdgeLabel: (id: string, label: string) => void
   addEdge: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void
   setEdgeStyle: (id: string, style: EdgeStyle) => void
+  assignToSubgraph: (nodeId: string, subgraphId: string, relativePosition: XYPosition) => void
+  removeFromSubgraph: (nodeId: string, absolutePosition: XYPosition) => void
   setPendingConnect: (sourceId: string | null) => void
   spawnConnectedNode: (sourceId: string, position: { x: number; y: number }) => void
   undo: () => void
@@ -251,6 +253,42 @@ export const useStore = create<StoreState>()((set, get) => ({
       ...(position ? { position } : {}),
     }
     withHistory(get, set, { nodes: nodes.map(n => n.id === id ? nextNode : n), edges })
+  },
+
+  assignToSubgraph: (nodeId, subgraphId, relativePosition) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node || node.parentId === subgraphId) return
+    const updatedNode: Node<FlowNodeData> = {
+      ...node,
+      parentId: subgraphId,
+      position: relativePosition,
+    }
+    // React Flow requires parent to appear before its children in the array.
+    const otherNodes = nodes.filter(n => n.id !== nodeId)
+    const sgIndex = otherNodes.findIndex(n => n.id === subgraphId)
+    if (sgIndex === -1) return
+    const nextNodes = [
+      ...otherNodes.slice(0, sgIndex + 1),
+      updatedNode,
+      ...otherNodes.slice(sgIndex + 1),
+    ]
+    withHistory(get, set, { nodes: nextNodes, edges })
+  },
+
+  removeFromSubgraph: (nodeId, absolutePosition) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node || !node.parentId) return
+    const { parentId: _p, extent: _e, ...rest } = node
+    const updatedNode: Node<FlowNodeData> = {
+      ...rest,
+      position: absolutePosition,
+    }
+    withHistory(get, set, {
+      nodes: nodes.map(n => n.id === nodeId ? updatedNode : n),
+      edges,
+    })
   },
 
   setPendingConnect: (sourceId) => {
