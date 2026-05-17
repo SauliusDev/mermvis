@@ -70,6 +70,9 @@ interface StoreState {
   removeFromSubgraph: (nodeId: string, absolutePosition: XYPosition) => void
   setPendingConnect: (sourceId: string | null) => void
   spawnConnectedNode: (sourceId: string, position: { x: number; y: number }) => void
+  updateNodeShape: (id: string, shape: NodeShape) => void
+  duplicateNode: (id: string) => void
+  toggleNodeLock: (id: string) => void
   undo: () => void
   redo: () => void
 }
@@ -337,6 +340,41 @@ export const useStore = create<StoreState>()((set, get) => ({
     withHistory(get, set, {
       nodes: [...nodes, newNode],
       edges: [...edges, newEdge],
+    })
+  },
+
+  updateNodeShape: (id, shape) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === id)
+    if (!node || node.data.shape === shape) return
+    withHistory(get, set, {
+      nodes: nodes.map(n => n.id === id ? { ...n, data: { ...n.data, shape } } : n),
+      edges,
+    })
+  },
+
+  duplicateNode: (id) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === id)
+    if (!node) return
+    const newNode = {
+      ...node,
+      id: crypto.randomUUID(),
+      position: { x: node.position.x + GRID_SNAP, y: node.position.y + GRID_SNAP },
+      selected: true,
+    }
+    const nextNodes = nodes.map(n => n.id === id ? { ...n, selected: false } : n)
+    withHistory(get, set, { nodes: [...nextNodes, newNode], edges })
+  },
+
+  toggleNodeLock: (id) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === id)
+    if (!node) return
+    const wasLocked = node.draggable === false
+    withHistory(get, set, {
+      nodes: nodes.map(n => n.id === id ? { ...n, draggable: wasLocked } : n),
+      edges,
     })
   },
 

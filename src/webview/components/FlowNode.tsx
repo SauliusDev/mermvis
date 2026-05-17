@@ -123,11 +123,13 @@ export default function FlowNode({
   id,
   data,
   selected,
+  positionAbsoluteY,
 }: NodeProps<Node<FlowNodeData>>): React.JSX.Element {
   const { label, shape } = data
   const renderShape = SVG_RENDERERS[shape] ?? renderRectangle
   const resizeNode = useStore(s => s.resizeNode)
   const updateNodeLabel = useStore(s => s.updateNodeLabel)
+  const selectedCount = useStore(s => s.nodes.filter(n => n.selected).length)
   const [editingLabel, setEditingLabel] = useState<string | null>(null)
   const isEscapingRef = useRef(false)
 
@@ -135,10 +137,14 @@ export default function FlowNode({
     resizeNode(id, { width: params.width, height: params.height }, { x: params.x, y: params.y })
   }, [id, resizeNode])
 
-  function handleDoubleClick(e: React.MouseEvent): void {
-    e.stopPropagation()
+  function handleStartEdit(): void {
     isEscapingRef.current = false
     setEditingLabel(label)
+  }
+
+  function handleDoubleClick(e: React.MouseEvent): void {
+    e.stopPropagation()
+    handleStartEdit()
   }
 
   function commitEdit(): void {
@@ -167,7 +173,13 @@ export default function FlowNode({
       ].filter(Boolean).join(' ')}
     >
       <NodeResizer isVisible={selected} minWidth={60} minHeight={30} onResizeEnd={handleResizeEnd} />
-      <MermvisToolbar isVisible={selected} />
+      <MermvisToolbar
+        isVisible={selected && selectedCount === 1}
+        nodeId={id}
+        shape={shape}
+        positionAbsoluteY={positionAbsoluteY}
+        onEditLabel={handleStartEdit}
+      />
       <ConnectArrows isVisible={selected ?? false} nodeId={id} />
       {renderShape()}
       {editingLabel !== null ? (

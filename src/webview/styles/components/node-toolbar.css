@@ -1,0 +1,108 @@
+.node-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(25, 26, 27, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-r-pill);
+  box-shadow: var(--mv-shadow-md);
+  z-index: var(--mv-z-topbar);
+}
+
+.node-toolbar__btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--mv-text-secondary);
+  border-radius: var(--mv-r-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+
+.node-toolbar__btn:hover {
+  background: var(--mv-bg-hover);
+  color: var(--mv-text-primary);
+}
+
+.node-toolbar__btn--active {
+  background: var(--mv-accent-dim);
+  color: var(--mv-accent);
+}
+
+.node-toolbar__btn--active:hover {
+  background: var(--mv-accent-dim);
+  color: var(--mv-accent);
+}
+
+.node-toolbar__btn--danger {
+  color: var(--mv-red);
+}
+
+.node-toolbar__btn--danger:hover {
+  background: rgba(244, 135, 113, 0.15);
+  color: var(--mv-red);
+}
+
+.node-toolbar__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--mv-border);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+.node-toolbar__shape-wrapper {
+  position: relative;
+}
+
+.node-toolbar__shape-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(25, 26, 27, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-r-md);
+  box-shadow: var(--mv-shadow-md);
+  z-index: var(--mv-z-color-picker);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+  min-width: 110px;
+}
+
+.node-toolbar__shape-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--mv-text-secondary);
+  border-radius: var(--mv-r-sm);
+  cursor: pointer;
+  font-size: 11px;
+  width: 100%;
+  text-align: left;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.node-toolbar__shape-option:hover {
+  background: var(--mv-bg-hover);
+  color: var(--mv-text-primary);
+}
+
+.node-toolbar__shape-option--active {
+  color: var(--mv-accent);
+  background: var(--mv-accent-dim);
+}

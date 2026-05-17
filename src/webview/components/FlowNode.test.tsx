@@ -26,6 +26,7 @@ vi.mock('@xyflow/react', () => ({
   },
   NodeToolbar: ({ isVisible, children }: { isVisible?: boolean; children?: React.ReactNode }) =>
     isVisible ? <div data-testid="rf-node-toolbar">{children}</div> : null,
+  useViewport: vi.fn(() => ({ zoom: 1, x: 0, y: 200 })),
 }))
 
 import FlowNode from './FlowNode'
@@ -179,6 +180,21 @@ describe('FlowNode', () => {
       capturedOnResizeEnd?.({}, { x: 0, y: 0, width: 200, height: 80, direction: [1, 0] })
       expect(useStore.getState().nodes[0].width).toBe(200)
       expect(useStore.getState().nodes[0].height).toBe(80)
+    })
+  })
+
+  describe('toolbar visibility', () => {
+    it('renders toolbar when selected and single node is selected in store', () => {
+      useStore.setState({
+        nodes: [{ id: 'node1', position: { x: 0, y: 0 }, data: { label: 'Test', shape: 'rectangle' }, type: 'default', selected: true }],
+      })
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', true)} />)
+      expect(container.querySelector('[data-testid="rf-node-toolbar"]')).not.toBeNull()
+    })
+
+    it('does not render toolbar when not selected', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle', 'Test', false)} />)
+      expect(container.querySelector('[data-testid="rf-node-toolbar"]')).toBeNull()
     })
   })
 

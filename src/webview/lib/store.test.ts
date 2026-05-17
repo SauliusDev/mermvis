@@ -753,4 +753,95 @@ describe('useStore', () => {
       expect(useStore.getState().history.past).toHaveLength(0)
     })
   })
+
+  describe('updateNodeShape', () => {
+    it('changes the node shape and creates a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateNodeShape('a', 'diamond')
+      expect(useStore.getState().nodes[0].data.shape).toBe('diamond')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('is a no-op when shape is unchanged (same shape reference)', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      const before = useStore.getState().history.past.length
+      useStore.getState().updateNodeShape('a', 'rectangle')
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
+  describe('duplicateNode', () => {
+    it('creates a new node at GRID_SNAP offset from original', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { position: { x: 100, y: 200 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNode('a')
+      const { nodes } = useStore.getState()
+      const copy = nodes.find(n => n.id !== 'a')!
+      expect(copy.position).toEqual({ x: 100 + GRID_SNAP, y: 200 + GRID_SNAP })
+    })
+
+    it('new node has a different id from original', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().duplicateNode('a')
+      const { nodes } = useStore.getState()
+      expect(nodes).toHaveLength(2)
+      expect(nodes[0].id).toBe('a')
+      expect(nodes[1].id).not.toBe('a')
+    })
+
+    it('duplicated node is selected, original is deselected', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNode('a')
+      const { nodes } = useStore.getState()
+      const original = nodes.find(n => n.id === 'a')!
+      const copy = nodes.find(n => n.id !== 'a')!
+      expect(original.selected).toBe(false)
+      expect(copy.selected).toBe(true)
+    })
+
+    it('is a no-op for unknown node id', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().duplicateNode('nonexistent')
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('creates one history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().duplicateNode('a')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+  })
+
+  describe('toggleNodeLock', () => {
+    it('sets draggable to false when node is draggable (unlocked)', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().toggleNodeLock('a')
+      expect(useStore.getState().nodes[0].draggable).toBe(false)
+    })
+
+    it('sets draggable to true when node is locked (draggable: false)', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { draggable: false })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().toggleNodeLock('a')
+      expect(useStore.getState().nodes[0].draggable).toBe(true)
+    })
+
+    it('creates one history entry per toggle', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().toggleNodeLock('a')
+      expect(useStore.getState().history.past).toHaveLength(1)
+      useStore.getState().toggleNodeLock('a')
+      expect(useStore.getState().history.past).toHaveLength(2)
+    })
+  })
 })
