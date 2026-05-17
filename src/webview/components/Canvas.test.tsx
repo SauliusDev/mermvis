@@ -320,4 +320,45 @@ describe('Canvas', () => {
     expect(e1?.className).toBe('flow-edge--connected')
     expect(e2?.className).toBeUndefined()
   })
+
+  it('dragover on canvas-container sets dropEffect to copy', () => {
+    const { container } = render(<Canvas />)
+    const canvasDiv = container.querySelector('.canvas-container')!
+    const mockDT = { dropEffect: '' as string }
+    act(() => {
+      fireEvent.dragOver(canvasDiv, { dataTransfer: mockDT })
+    })
+    expect(mockDT.dropEffect).toBe('copy')
+  })
+
+  it('drop on canvas-container creates a node with the dragged shape', () => {
+    const { container } = render(<Canvas />)
+    const canvasDiv = container.querySelector('.canvas-container')!
+    act(() => {
+      fireEvent.drop(canvasDiv, {
+        clientX: 120,
+        clientY: 240,
+        dataTransfer: { getData: (key: string) => key === 'application/reactflow-palette' ? 'circle' : '' },
+      })
+    })
+    const nodes = useStore.getState().nodes
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].data.shape).toBe('circle')
+    expect(nodes[0].data.label).toBe('New Node')
+  })
+
+  it('drop with subgraph shape calls addSubgraph instead of addNode', () => {
+    const mockAddSubgraph = vi.fn()
+    useStore.setState({ addSubgraph: mockAddSubgraph } as never)
+    const { container } = render(<Canvas />)
+    const canvasDiv = container.querySelector('.canvas-container')!
+    act(() => {
+      fireEvent.drop(canvasDiv, {
+        clientX: 100,
+        clientY: 100,
+        dataTransfer: { getData: (key: string) => key === 'application/reactflow-palette' ? 'subgraph' : '' },
+      })
+    })
+    expect(mockAddSubgraph).toHaveBeenCalled()
+  })
 })

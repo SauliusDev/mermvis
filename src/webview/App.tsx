@@ -10,6 +10,7 @@ import './styles/components/node.css'
 import './styles/components/edge.css'
 import './styles/components/sidebar.css'
 import './styles/components/subgraph.css'
+import './styles/components/palette.css'
 
 export default function App(): React.JSX.Element {
   useEffect(() => {

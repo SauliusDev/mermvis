@@ -11,6 +11,12 @@ vi.mock('@xyflow/react', () => ({
   useReactFlow: () => ({ fitView: mockFitView }),
 }))
 
+vi.mock('@/components/Palette', () => ({
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="mock-palette" onClick={onClose} />
+  ),
+}))
+
 import CanvasSidebar from './CanvasSidebar'
 import { useStore } from '@/lib/store'
 import { mockReactFlow } from '../setupTests'
@@ -74,17 +80,41 @@ describe('CanvasSidebar', () => {
     expect(redoBtn.disabled).toBe(true)
   })
 
+  it('clicking Add Node button toggles palette open', () => {
+    render(<CanvasSidebar />)
+    expect(screen.queryByTestId('mock-palette')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
+    expect(screen.getByTestId('mock-palette')).toBeTruthy()
+  })
+
+  it('Add Node button has canvas-sidebar__btn--active class when palette is open', () => {
+    render(<CanvasSidebar />)
+    const addBtn = screen.getByRole('button', { name: 'Add Node' })
+    expect(addBtn.classList.contains('canvas-sidebar__btn--active')).toBe(false)
+    fireEvent.click(addBtn)
+    expect(addBtn.classList.contains('canvas-sidebar__btn--active')).toBe(true)
+  })
+
+  it('clicking Add Node again closes palette (toggle behavior)', () => {
+    render(<CanvasSidebar />)
+    const addBtn = screen.getByRole('button', { name: 'Add Node' })
+    fireEvent.click(addBtn)
+    expect(screen.getByTestId('mock-palette')).toBeTruthy()
+    fireEvent.click(addBtn)
+    expect(screen.queryByTestId('mock-palette')).toBeNull()
+  })
+
   it('undo button is enabled after a node is added', () => {
     render(<CanvasSidebar />)
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement
     expect(undoBtn.disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Subgraph' }))
     expect(undoBtn.disabled).toBe(false)
   })
 
-  it('clicking undo button calls store.undo() and removes the added node', () => {
+  it('clicking undo button removes the added node', () => {
     render(<CanvasSidebar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Subgraph' }))
     expect(useStore.getState().nodes).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     expect(useStore.getState().nodes).toHaveLength(0)
@@ -97,15 +127,6 @@ describe('CanvasSidebar', () => {
     expect(useStore.getState().nodes[0].data.isSubgraph).toBe(true)
   })
 
-  it('clicking add-node button adds a rectangle node to the store', () => {
-    render(<CanvasSidebar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
-    const node = useStore.getState().nodes[0]
-    expect(node).toBeDefined()
-    expect(node.data.shape).toBe('rectangle')
-    expect(node.data.label).toBe('New Node')
-  })
-
   it('clicking zoom-to-fit button calls fitView()', () => {
     render(<CanvasSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Zoom to Fit' }))
@@ -114,14 +135,14 @@ describe('CanvasSidebar', () => {
 
   it('clicking auto-layout button calls fitView() when nodes exist', () => {
     render(<CanvasSidebar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Subgraph' }))
     fireEvent.click(screen.getByRole('button', { name: 'Auto Layout' }))
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.1 })
   })
 
   it('clicking redo button restores node removed by undo', () => {
     render(<CanvasSidebar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add Node' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Subgraph' }))
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     expect(useStore.getState().nodes).toHaveLength(0)
     fireEvent.click(screen.getByRole('button', { name: 'Redo' }))

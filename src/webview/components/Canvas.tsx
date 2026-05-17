@@ -5,7 +5,7 @@ import {
 } from '@xyflow/react'
 import type { NodeChange, Node, Connection, NodeMouseHandler, XYPosition } from '@xyflow/react'
 import { useStore, useShallow, GRID_SNAP } from '@/lib/store'
-import type { FlowNodeData } from '@/lib/store'
+import type { FlowNodeData, NodeShape } from '@/lib/store'
 import { findDropTargetSubgraph, isNodeOutsideParent, toRelativePosition, toAbsolutePosition } from '@/lib/subgraphHitTest'
 import FlowNode from '@/components/FlowNode'
 import SubgraphNode from '@/components/SubgraphNode'
@@ -19,6 +19,7 @@ import { computeDimmedNodeIds, computeConnectedEdgeIds } from '@/lib/selection'
 // remount and flicker. Module-scope definition = stable reference.
 const nodeTypes = { flowNode: FlowNode, subgraphNode: SubgraphNode }
 const edgeTypes = { default: FlowEdge }
+const VALID_PALETTE_SHAPES = new Set<string>(['rectangle', 'rounded', 'pill', 'diamond', 'circle', 'hexagon', 'cylinder', 'subgraph'])
 
 function CanvasFlow(): React.JSX.Element {
   const { screenToFlowPosition } = useReactFlow()
@@ -39,6 +40,8 @@ function CanvasFlow(): React.JSX.Element {
       addEdge: s.addEdge,
     }))
   )
+  const addNode = useStore(s => s.addNode)
+  const addSubgraph = useStore(s => s.addSubgraph)
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
@@ -149,6 +152,33 @@ function CanvasFlow(): React.JSX.Element {
     setPendingConnect(null)
   }, [pendingConnect, setPendingConnect, spawnConnectedNode, screenToFlowPosition])
 
+  function handleCanvasDragOver(e: React.DragEvent): void {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  function handleCanvasDrop(e: React.DragEvent): void {
+    e.preventDefault()
+    const raw = e.dataTransfer.getData('application/reactflow-palette')
+    if (!raw || !VALID_PALETTE_SHAPES.has(raw)) return
+    const shape = raw as NodeShape
+    const rawPos = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+    const position = {
+      x: Math.round(rawPos.x / GRID_SNAP) * GRID_SNAP,
+      y: Math.round(rawPos.y / GRID_SNAP) * GRID_SNAP,
+    }
+    if (shape === 'subgraph') {
+      addSubgraph()
+    } else {
+      addNode({
+        id: crypto.randomUUID(),
+        type: 'flowNode',
+        position,
+        data: { label: 'New Node', shape },
+      })
+    }
+  }
+
   // Escape key deselects all nodes and clears pendingConnect; Delete/Backspace removes selected nodes
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
@@ -180,7 +210,11 @@ function CanvasFlow(): React.JSX.Element {
   }, [deselectAll, removeNodes, removeEdges, setPendingConnect])
 
   return (
-    <div className={`canvas-container${pendingConnect ? ' canvas--pending-connect' : ''}`}>
+    <div
+      className={`canvas-container${pendingConnect ? ' canvas--pending-connect' : ''}`}
+      onDragOver={handleCanvasDragOver}
+      onDrop={handleCanvasDrop}
+    >
       <CanvasSidebar />
       <ReactFlow
         nodes={displayNodes}
