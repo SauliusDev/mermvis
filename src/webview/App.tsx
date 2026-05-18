@@ -3,11 +3,13 @@ import { sendToHost, onHostMessage } from './vscode'
 import type { HostToWebviewMessage } from '../shared/types'
 import { useStore } from './lib/store'
 import Canvas from './components/Canvas'
+import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
 import type { PanelId, PanelVisible } from './components/TopBar'
 import '@xyflow/react/dist/style.css'
 import './styles/variables.css'
 import './styles/base.css'
+import './styles/components/panels.css'
 import './styles/themes/dark.css'
 import './styles/components/topbar.css'
 import './styles/components/node.css'
@@ -67,14 +69,7 @@ export default function App(): React.JSX.Element {
     <div className="app">
       <TopBar panelVisible={panelVisible} onTogglePanel={handleTogglePanel} />
       <main className="app__main">
-        <div
-          className="app__panel"
-          style={panelVisible.canvas ? undefined : { display: 'none' }}
-        >
-          <Canvas />
-        </div>
-        {/* panelVisible.code: CodePanel lazy-loaded (Story 6-3) */}
-        {/* panelVisible.preview: PreviewPanel lazy-loaded (Story 7-1) */}
+        <PanelLayout panelVisible={panelVisible} canvas={<Canvas />} />
       </main>
     </div>
   )

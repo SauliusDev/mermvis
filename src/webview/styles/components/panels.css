@@ -1,0 +1,52 @@
+/* ── PanelLayout container ────────────────────────────────────────────────── */
+.panel-layout {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Individual panel slot ────────────────────────────────────────────────── */
+.panel-layout__panel {
+  overflow: hidden;
+  min-width: var(--mv-panel-min-width);
+}
+
+/* ── Resize handle ────────────────────────────────────────────────────────── */
+.resize-handle {
+  width: var(--mv-resize-handle-width);
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--mv-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease;
+  z-index: 1;
+  position: relative;
+}
+
+.resize-handle:hover,
+.resize-handle--dragging {
+  background: var(--mv-resize-handle-hover);
+}
+
+/* ── Grip dots (3 × 3px circles, centered) ───────────────────────────────── */
+.resize-handle__grip {
+  width: 3px;
+  height: 21px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resize-handle__grip span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--mv-text-dim);
+  flex-shrink: 0;
+}
