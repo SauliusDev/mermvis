@@ -21,6 +21,7 @@ import './styles/components/node-toolbar.css'
 import './styles/components/node-color-picker.css'
 
 const CodePanel = React.lazy(() => import('./components/CodePanel'))
+const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
 
 export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
@@ -40,7 +41,10 @@ export default function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(() => { import('./components/CodePanel') }, 1500)
+    const t = setTimeout(() => {
+      import('./components/CodePanel')
+      import('./components/PreviewPanel')
+    }, 1500)
     return () => clearTimeout(t)
   }, [])
 
@@ -82,6 +86,11 @@ export default function App(): React.JSX.Element {
           code={
             <React.Suspense fallback={<div className="code-panel-loading" />}>
               <CodePanel />
+            </React.Suspense>
+          }
+          preview={
+            <React.Suspense fallback={<div className="preview-panel-loading" />}>
+              <PreviewPanel />
             </React.Suspense>
           }
         />
