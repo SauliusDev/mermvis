@@ -2,6 +2,35 @@ import React, { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { useShallow } from 'zustand/react/shallow'
 import type { NodeShape } from '@/lib/store'
+import { FILL_SWATCHES, STROKE_SWATCHES, TEXT_SWATCHES } from './NodeColorPicker'
+
+interface InspectorSwatchRowProps {
+  label: string
+  swatches: string[]
+  selected?: string
+  onSelect: (color: string) => void
+}
+
+function InspectorSwatchRow({ label, swatches, selected, onSelect }: InspectorSwatchRowProps): React.JSX.Element {
+  return (
+    <div className="inspector__swatch-row">
+      <span className="inspector__label">{label}</span>
+      <div className="inspector__swatches" role="group" aria-label={`${label} color swatches`}>
+        {swatches.map(color => (
+          <button
+            key={color}
+            className={`inspector__swatch${selected === color ? ' inspector__swatch--active' : ''}`}
+            style={{ background: color }}
+            aria-label={`${label} ${color}`}
+            aria-pressed={selected === color}
+            title={color}
+            onClick={() => onSelect(color)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const SHAPE_LABELS: Record<NodeShape, string> = {
   rectangle: 'Rectangle',
@@ -19,11 +48,13 @@ export default function Inspector(): React.JSX.Element {
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
 
-  const { toggleInspector, updateNodeLabel, moveNodes } = useStore(
+  const { toggleInspector, updateNodeLabel, moveNodes, updateNodeColors, toggleNodeHandDrawn } = useStore(
     useShallow(s => ({
       toggleInspector: s.toggleInspector,
       updateNodeLabel: s.updateNodeLabel,
       moveNodes: s.moveNodes,
+      updateNodeColors: s.updateNodeColors,
+      toggleNodeHandDrawn: s.toggleNodeHandDrawn,
     }))
   )
 
@@ -50,6 +81,11 @@ export default function Inspector(): React.JSX.Element {
           })),
       ]
     : []
+
+  const fillColor = selectedNode?.data.fillColor
+  const strokeColor = selectedNode?.data.strokeColor
+  const textColor = selectedNode?.data.textColor
+  const isHandDrawn = selectedNode?.data.isHandDrawn
 
   const [labelValue, setLabelValue] = useState(selectedNode?.data.label ?? '')
   const [xValue, setXValue] = useState(
@@ -195,6 +231,47 @@ export default function Inspector(): React.JSX.Element {
                 value={SHAPE_LABELS[selectedNode.data.shape]}
                 readOnly
               />
+            </div>
+          </div>
+          <div className="inspector__section">
+            <div className="inspector__section-title">Style</div>
+            <InspectorSwatchRow
+              label="Fill"
+              swatches={FILL_SWATCHES}
+              selected={fillColor}
+              onSelect={color => updateNodeColors(selectedNode.id, { fillColor: color, strokeColor, textColor })}
+            />
+            <InspectorSwatchRow
+              label="Border"
+              swatches={STROKE_SWATCHES}
+              selected={strokeColor}
+              onSelect={color => updateNodeColors(selectedNode.id, { fillColor, strokeColor: color, textColor })}
+            />
+            <InspectorSwatchRow
+              label="Text"
+              swatches={TEXT_SWATCHES}
+              selected={textColor}
+              onSelect={color => updateNodeColors(selectedNode.id, { fillColor, strokeColor, textColor: color })}
+            />
+            <div className="inspector__style-actions">
+              <button
+                className="inspector__reset-btn"
+                onClick={() => updateNodeColors(selectedNode.id, { fillColor: undefined, strokeColor: undefined, textColor: undefined })}
+              >
+                Reset colors
+              </button>
+              <div className="inspector__toggle-row">
+                <span className="inspector__label">Hand-drawn</span>
+                <button
+                  className={`inspector__toggle${isHandDrawn ? ' inspector__toggle--on' : ''}`}
+                  role="switch"
+                  aria-checked={isHandDrawn ?? false}
+                  aria-label="Toggle hand-drawn style"
+                  onClick={() => toggleNodeHandDrawn(selectedNode.id)}
+                >
+                  <span className="inspector__toggle-thumb" />
+                </button>
+              </div>
             </div>
           </div>
           <div className="inspector__section">

@@ -1,15 +1,15 @@
 import React, { useRef, useEffect, useCallback } from 'react'
 import { useStore } from '@/lib/store'
 
-const FILL_SWATCHES = [
+export const FILL_SWATCHES = [
   '#1e2022', '#1e2a3a', '#1e2a22', '#2a1e2a',
   '#2a221e', '#2a2a1e', '#1e2a2a', '#2a1e22',
 ]
-const STROKE_SWATCHES = [
+export const STROKE_SWATCHES = [
   '#3a3c3e', '#3a6a8a', '#3a6a3a', '#6a3a6a',
   '#6a4a3a', '#6a6a3a', '#3a6a6a', '#6a3a4a',
 ]
-const TEXT_SWATCHES = [
+export const TEXT_SWATCHES = [
   '#bfbfbf', '#79b3d3', '#79c97d', '#c36dc3',
   '#c3a079', '#c3c379', '#79c3c3', '#c379a0',
 ]

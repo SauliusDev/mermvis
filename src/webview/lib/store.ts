@@ -31,6 +31,7 @@ export interface FlowNodeData extends Record<string, unknown> {
   fillColor?: string
   strokeColor?: string
   textColor?: string
+  isHandDrawn?: boolean
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -89,6 +90,7 @@ interface StoreState {
   duplicateNode: (id: string) => void
   toggleNodeLock: (id: string) => void
   updateNodeColors: (id: string, colors: { fillColor?: string; strokeColor?: string; textColor?: string }) => void
+  toggleNodeHandDrawn: (id: string) => void
   viewport: { x: number; y: number; zoom: number }
   viewportToRestore: { x: number; y: number; zoom: number } | null
   setViewport: (vp: { x: number; y: number; zoom: number }) => void
@@ -431,6 +433,18 @@ export const useStore = create<StoreState>()((set, get) => ({
     })
   },
 
+  toggleNodeHandDrawn: (id) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === id)
+    if (!node) return
+    withHistory(get, set, {
+      nodes: nodes.map(n =>
+        n.id === id ? { ...n, data: { ...n.data, isHandDrawn: !n.data.isHandDrawn } } : n
+      ),
+      edges,
+    })
+  },
+
   undo: () => {
     const { history } = get()
     if (history.past.length === 0) return
@@ -477,6 +491,7 @@ export const useStore = create<StoreState>()((set, get) => ({
           fillColor: current.data.fillColor,
           strokeColor: current.data.strokeColor,
           textColor: current.data.textColor,
+          isHandDrawn: current.data.isHandDrawn,
         },
       }
     })

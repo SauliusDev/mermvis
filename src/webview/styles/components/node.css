@@ -179,3 +179,19 @@
 .canvas--pending-connect .react-flow__pane {
   cursor: crosshair;
 }
+
+/* ── Hand-drawn node style ──────────────────────────────────────────────── */
+.flow-node--hand-drawn .flow-node__svg path,
+.flow-node--hand-drawn .flow-node__svg rect,
+.flow-node--hand-drawn .flow-node__svg circle,
+.flow-node--hand-drawn .flow-node__svg ellipse,
+.flow-node--hand-drawn .flow-node__svg polygon {
+  stroke-dasharray: 5 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.flow-node--hand-drawn .flow-node__label {
+  font-style: italic;
+}

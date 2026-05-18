@@ -183,6 +183,31 @@ describe('FlowNode', () => {
     })
   })
 
+  describe('hand-drawn class', () => {
+    it('applies flow-node--hand-drawn class when isHandDrawn=true', () => {
+      const props = {
+        ...makeNodeProps('rectangle'),
+        data: { label: 'Test', shape: 'rectangle' as const, isHandDrawn: true },
+      }
+      const { container } = render(<FlowNode {...props} />)
+      expect(container.firstElementChild?.className).toContain('flow-node--hand-drawn')
+    })
+
+    it('does not apply flow-node--hand-drawn when isHandDrawn is undefined', () => {
+      const { container } = render(<FlowNode {...makeNodeProps('rectangle')} />)
+      expect(container.firstElementChild?.className).not.toContain('flow-node--hand-drawn')
+    })
+
+    it('does not apply flow-node--hand-drawn when isHandDrawn=false', () => {
+      const props = {
+        ...makeNodeProps('rectangle'),
+        data: { label: 'Test', shape: 'rectangle' as const, isHandDrawn: false },
+      }
+      const { container } = render(<FlowNode {...props} />)
+      expect(container.firstElementChild?.className).not.toContain('flow-node--hand-drawn')
+    })
+  })
+
   describe('toolbar visibility', () => {
     it('renders toolbar when selected and single node is selected in store', () => {
       useStore.setState({

@@ -189,6 +189,90 @@ describe('Inspector', () => {
     })
   })
 
+  describe('style section', () => {
+    it('renders style section when node is selected', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+      const titles = screen.getAllByText('Style')
+      expect(titles.length).toBeGreaterThan(0)
+    })
+
+    it('renders fill, border, text swatch rows', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      const { container } = render(<Inspector />)
+      const rows = container.querySelectorAll('.inspector__swatch-row')
+      expect(rows).toHaveLength(3)
+    })
+
+    it('shows swatch as active when fillColor matches', () => {
+      const node = makeNode('a', { selected: true, data: { label: 'Node a', shape: 'rectangle', fillColor: '#1e2022' } })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      const { container } = render(<Inspector />)
+      const activeSwatches = container.querySelectorAll('.inspector__swatch--active')
+      expect(activeSwatches.length).toBeGreaterThan(0)
+    })
+
+    it('clicking fill swatch calls updateNodeColors with correct fillColor', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+
+      const fillSwatchGroup = screen.getByRole('group', { name: 'Fill color swatches' })
+      const firstSwatch = fillSwatchGroup.querySelectorAll('button')[0]
+      fireEvent.click(firstSwatch)
+
+      expect(useStore.getState().nodes[0].data.fillColor).toBe('#1e2022')
+    })
+
+    it('clicking reset button calls updateNodeColors with all undefined', () => {
+      const node = makeNode('a', { selected: true, data: { label: 'Node a', shape: 'rectangle', fillColor: '#1e2022' } })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+
+      fireEvent.click(screen.getByText('Reset colors'))
+
+      const data = useStore.getState().nodes[0].data
+      expect(data.fillColor).toBeUndefined()
+      expect(data.strokeColor).toBeUndefined()
+      expect(data.textColor).toBeUndefined()
+    })
+
+    it('hand-drawn toggle has role=switch', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+      expect(screen.getByRole('switch')).toBeTruthy()
+    })
+
+    it('hand-drawn toggle aria-checked=false when isHandDrawn is undefined', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+      const toggle = screen.getByRole('switch')
+      expect(toggle.getAttribute('aria-checked')).toBe('false')
+    })
+
+    it('hand-drawn toggle aria-checked=true when isHandDrawn=true', () => {
+      const node = makeNode('a', { selected: true, data: { label: 'Node a', shape: 'rectangle', isHandDrawn: true } })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+      const toggle = screen.getByRole('switch')
+      expect(toggle.getAttribute('aria-checked')).toBe('true')
+    })
+
+    it('clicking hand-drawn toggle calls toggleNodeHandDrawn', () => {
+      const node = makeNode('a', { selected: true })
+      useStore.setState({ inspectorOpen: true, nodes: [node] })
+      render(<Inspector />)
+
+      fireEvent.click(screen.getByRole('switch'))
+
+      expect(useStore.getState().nodes[0].data.isHandDrawn).toBe(true)
+    })
+  })
+
   describe('close behavior', () => {
     it('close button calls toggleInspector', () => {
       useStore.setState({ inspectorOpen: true })

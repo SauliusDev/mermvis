@@ -125,7 +125,7 @@ export default function FlowNode({
   selected,
   positionAbsoluteY,
 }: NodeProps<Node<FlowNodeData>>): React.JSX.Element {
-  const { label, shape, fillColor, strokeColor, textColor } = data
+  const { label, shape, fillColor, strokeColor, textColor, isHandDrawn } = data
   const renderShape = SVG_RENDERERS[shape] ?? renderRectangle
   const colorStyle: Record<string, string> = {}
   if (fillColor !== undefined) colorStyle['--mv-node-fill'] = fillColor
@@ -174,6 +174,7 @@ export default function FlowNode({
         'flow-node',
         `flow-node--${shape}`,
         selected ? 'flow-node--selected' : '',
+        isHandDrawn ? 'flow-node--hand-drawn' : '',
       ].filter(Boolean).join(' ')}
       style={Object.keys(colorStyle).length > 0 ? colorStyle as React.CSSProperties : undefined}
     >
