@@ -48,6 +48,16 @@ export function serialize(input: SerializeInput): string {
     }
   }
 
+  for (const node of input.nodes) {
+    const { fillColor, strokeColor, textColor } = node.data
+    if (!fillColor && !strokeColor && !textColor) continue
+    const parts: string[] = []
+    if (fillColor) parts.push(`fill:${fillColor}`)
+    if (strokeColor) parts.push(`stroke:${strokeColor}`)
+    if (textColor) parts.push(`color:${textColor}`)
+    lines.push(`  style ${node.id} ${parts.join(',')}`)
+  }
+
   if (input.passthroughLines) {
     for (const line of input.passthroughLines) {
       lines.push(`  ${line}`)

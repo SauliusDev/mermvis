@@ -25,6 +25,9 @@ export interface FlowNodeData extends Record<string, unknown> {
   label: string
   shape: NodeShape
   isSubgraph?: boolean
+  fillColor?: string
+  strokeColor?: string
+  textColor?: string
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -73,6 +76,7 @@ interface StoreState {
   updateNodeShape: (id: string, shape: NodeShape) => void
   duplicateNode: (id: string) => void
   toggleNodeLock: (id: string) => void
+  updateNodeColors: (id: string, colors: { fillColor?: string; strokeColor?: string; textColor?: string }) => void
   undo: () => void
   redo: () => void
 }
@@ -374,6 +378,18 @@ export const useStore = create<StoreState>()((set, get) => ({
     const wasLocked = node.draggable === false
     withHistory(get, set, {
       nodes: nodes.map(n => n.id === id ? { ...n, draggable: wasLocked } : n),
+      edges,
+    })
+  },
+
+  updateNodeColors: (id, colors) => {
+    const { nodes, edges } = get()
+    const node = nodes.find(n => n.id === id)
+    if (!node) return
+    const d = node.data
+    if (d.fillColor === colors.fillColor && d.strokeColor === colors.strokeColor && d.textColor === colors.textColor) return
+    withHistory(get, set, {
+      nodes: nodes.map(n => n.id === id ? { ...n, data: { ...n.data, ...colors } } : n),
       edges,
     })
   },

@@ -63,6 +63,10 @@
   position: relative;
 }
 
+.node-toolbar__color-wrapper {
+  position: relative;
+}
+
 .node-toolbar__shape-dropdown {
   position: absolute;
   top: calc(100% + 4px);

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { NodeToolbar as RFNodeToolbar, Position, useViewport } from '@xyflow/react'
 import { useStore, useShallow } from '@/lib/store'
 import type { NodeShape } from '@/lib/store'
+import NodeColorPicker from '@/components/NodeColorPicker'
 
 interface NodeToolbarProps {
   isVisible?: boolean
@@ -38,10 +39,28 @@ export default function NodeToolbar({ isVisible, nodeId, shape, positionAbsolute
 
   const isLocked = useStore(s => s.nodes.find(n => n.id === nodeId)?.draggable === false)
 
+  const { fillColor, strokeColor, textColor } = useStore(
+    useShallow(s => {
+      const node = s.nodes.find(n => n.id === nodeId)
+      return {
+        fillColor: node?.data.fillColor,
+        strokeColor: node?.data.strokeColor,
+        textColor: node?.data.textColor,
+      }
+    })
+  )
+
   const [shapeDropdownOpen, setShapeDropdownOpen] = useState(false)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const colorBtnRef = useRef<HTMLButtonElement>(null)
+
+  const handleColorPickerClose = useCallback(() => setColorPickerOpen(false), [])
 
   useEffect(() => {
-    if (!isVisible) setShapeDropdownOpen(false)
+    if (!isVisible) {
+      setShapeDropdownOpen(false)
+      setColorPickerOpen(false)
+    }
   }, [isVisible])
 
   function handleShapeSelect(s: NodeShape): void {
@@ -90,6 +109,27 @@ export default function NodeToolbar({ isVisible, nodeId, shape, positionAbsolute
                 </button>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="node-toolbar__color-wrapper">
+          <button
+            ref={colorBtnRef}
+            className={`node-toolbar__btn${colorPickerOpen ? ' node-toolbar__btn--active' : ''}`}
+            aria-label="Pick color"
+            title="Pick color"
+            aria-expanded={colorPickerOpen}
+            onClick={() => setColorPickerOpen(prev => !prev)}
+          >◑</button>
+          {colorPickerOpen && (
+            <NodeColorPicker
+              nodeId={nodeId}
+              fillColor={fillColor}
+              strokeColor={strokeColor}
+              textColor={textColor}
+              onClose={handleColorPickerClose}
+              triggerRef={colorBtnRef}
+            />
           )}
         </div>
 

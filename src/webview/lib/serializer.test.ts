@@ -86,6 +86,33 @@ describe('serialize', () => {
   })
 })
 
+describe('style directives', () => {
+  it('emits style directive when node has fillColor override', () => {
+    const node = makeNode('A', { data: { label: 'Node', shape: 'rectangle', fillColor: '#1e2a3a' } })
+    const result = serialize({ nodes: [node], edges: [] })
+    expect(result).toContain('  style A fill:#1e2a3a')
+  })
+
+  it('emits style directive with all three channels when all colors set', () => {
+    const node = makeNode('A', { data: { label: 'Node', shape: 'rectangle', fillColor: '#1e2a3a', strokeColor: '#3a6a8a', textColor: '#79b3d3' } })
+    const result = serialize({ nodes: [node], edges: [] })
+    expect(result).toContain('  style A fill:#1e2a3a,stroke:#3a6a8a,color:#79b3d3')
+  })
+
+  it('does NOT emit style directive for nodes without color overrides', () => {
+    const node = makeNode('A', 'Label', 'rectangle')
+    const result = serialize({ nodes: [node], edges: [] })
+    expect(result).not.toContain('style')
+  })
+
+  it('emits only set channels in style directive (e.g. only fill when only fillColor set)', () => {
+    const node = makeNode('A', { data: { label: 'Node', shape: 'rectangle', fillColor: '#1e2a3a', textColor: '#79b3d3' } })
+    const result = serialize({ nodes: [node], edges: [] })
+    expect(result).toContain('  style A fill:#1e2a3a,color:#79b3d3')
+    expect(result).not.toContain('stroke')
+  })
+})
+
 describe('subgraph serialization', () => {
   it('subgraph with no children emits subgraph/end block with no child lines', () => {
     const subgraphNode = makeNode('SG1', {

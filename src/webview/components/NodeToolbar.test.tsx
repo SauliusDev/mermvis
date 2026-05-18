@@ -26,6 +26,7 @@ const mockRemoveNodes = vi.fn()
 const mockDuplicateNode = vi.fn()
 const mockToggleNodeLock = vi.fn()
 const mockUpdateNodeShape = vi.fn()
+const mockUpdateNodeColors = vi.fn()
 const mockOnEditLabel = vi.fn()
 
 const defaultProps = {
@@ -41,6 +42,7 @@ beforeEach(() => {
   mockDuplicateNode.mockClear()
   mockToggleNodeLock.mockClear()
   mockUpdateNodeShape.mockClear()
+  mockUpdateNodeColors.mockClear()
   mockOnEditLabel.mockClear()
   capturedPosition = undefined
   vi.mocked(useViewport).mockReturnValue({ zoom: 1, x: 0, y: 200 })
@@ -50,6 +52,7 @@ beforeEach(() => {
     duplicateNode: mockDuplicateNode,
     toggleNodeLock: mockToggleNodeLock,
     updateNodeShape: mockUpdateNodeShape,
+    updateNodeColors: mockUpdateNodeColors,
   })
 })
 
@@ -157,5 +160,23 @@ describe('NodeToolbar', () => {
     vi.mocked(useViewport).mockReturnValue({ zoom: 1, x: 0, y: -300 })
     render(<NodeToolbar {...defaultProps} positionAbsoluteY={50} />)
     expect(capturedPosition).toBe('bottom')
+  })
+
+  it('renders color picker trigger button', () => {
+    render(<NodeToolbar {...defaultProps} />)
+    expect(screen.getByRole('button', { name: 'Pick color' })).not.toBeNull()
+  })
+
+  it('clicking color picker button shows active class on button', () => {
+    render(<NodeToolbar {...defaultProps} />)
+    const colorBtn = screen.getByRole('button', { name: 'Pick color' })
+    fireEvent.click(colorBtn)
+    expect(colorBtn.className).toContain('node-toolbar__btn--active')
+  })
+
+  it('clicking color picker button renders NodeColorPicker', () => {
+    render(<NodeToolbar {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick color' }))
+    expect(document.querySelector('.node-color-picker')).not.toBeNull()
   })
 })

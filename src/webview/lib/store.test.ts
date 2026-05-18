@@ -819,6 +819,60 @@ describe('useStore', () => {
     })
   })
 
+  describe('updateNodeColors', () => {
+    it('updates fillColor and creates a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateNodeColors('a', { fillColor: '#1e2a3a' })
+      expect(useStore.getState().nodes[0].data.fillColor).toBe('#1e2a3a')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('updates strokeColor and creates a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateNodeColors('a', { strokeColor: '#3a6a8a' })
+      expect(useStore.getState().nodes[0].data.strokeColor).toBe('#3a6a8a')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('updates textColor and creates a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateNodeColors('a', { textColor: '#79b3d3' })
+      expect(useStore.getState().nodes[0].data.textColor).toBe('#79b3d3')
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('reset (all undefined) clears color overrides', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { data: { label: 'Node a', shape: 'rectangle', fillColor: '#1e2a3a', strokeColor: '#3a6a8a', textColor: '#79b3d3' } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().updateNodeColors('a', { fillColor: undefined, strokeColor: undefined, textColor: undefined })
+      const d = useStore.getState().nodes[0].data
+      expect(d.fillColor).toBeUndefined()
+      expect(d.strokeColor).toBeUndefined()
+      expect(d.textColor).toBeUndefined()
+      expect(useStore.getState().history.past).toHaveLength(1)
+    })
+
+    it('is a no-op when colors are unchanged', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { data: { label: 'Node a', shape: 'rectangle', fillColor: '#1e2a3a' } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      const before = useStore.getState().history.past.length
+      useStore.getState().updateNodeColors('a', { fillColor: '#1e2a3a' })
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+
+    it('is a no-op for unknown node id', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().updateNodeColors('nonexistent', { fillColor: '#1e2a3a' })
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+  })
+
   describe('toggleNodeLock', () => {
     it('sets draggable to false when node is draggable (unlocked)', () => {
       useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })

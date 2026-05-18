@@ -12,6 +12,7 @@ import './styles/components/sidebar.css'
 import './styles/components/subgraph.css'
 import './styles/components/palette.css'
 import './styles/components/node-toolbar.css'
+import './styles/components/node-color-picker.css'
 
 export default function App(): React.JSX.Element {
   useEffect(() => {
