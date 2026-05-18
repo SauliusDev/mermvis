@@ -20,9 +20,11 @@ vi.mock('./serializer', () => ({
   serialize: vi.fn(() => 'flowchart TD\n  A[Node]'),
 }))
 
-import { useAutoSave, useManualSave, AUTO_SAVE_DEBOUNCE_MS } from './autoSave'
+import { useAutoSave, useManualSave, AUTO_SAVE_DEBOUNCE_MS, buildLayoutJson } from './autoSave'
 import { useStore } from './store'
 import { sendToHost } from '../vscode'
+import type { Node } from '@xyflow/react'
+import type { FlowNodeData } from './store'
 
 describe('useAutoSave', () => {
   let unsubscribeMock: ReturnType<typeof vi.fn>
@@ -42,6 +44,7 @@ describe('useAutoSave', () => {
       syncDirection: null,
       nodes: [],
       edges: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
     } as never)
   })
 
@@ -79,6 +82,11 @@ describe('useAutoSave', () => {
       type: 'SAVE',
       payload: expect.objectContaining({ content: expect.any(String), layoutJson: expect.any(String) }),
     })
+    const call = vi.mocked(sendToHost).mock.calls[0][0] as { type: string; payload: { layoutJson: string } }
+    const layout = JSON.parse(call.payload.layoutJson)
+    expect(layout.version).toBe(1)
+    expect(layout).toHaveProperty('nodes')
+    expect(layout).toHaveProperty('viewport')
   })
 
   it('resets timer on rapid successive history changes', () => {
@@ -99,6 +107,7 @@ describe('useAutoSave', () => {
       syncDirection: 'canvas',
       nodes: [],
       edges: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
     } as never)
     renderHook(() => useAutoSave(true))
     const prevState = { history: { past: [{}] } }
@@ -129,12 +138,49 @@ describe('useAutoSave', () => {
   })
 })
 
+describe('buildLayoutJson', () => {
+  it('maps node positions to layout schema', () => {
+    const nodes: Node<FlowNodeData>[] = [
+      { id: 'a', position: { x: 100, y: 200 }, data: { label: 'A', shape: 'rectangle' }, type: 'flowNode' },
+    ]
+    const vp = { x: -50, y: -30, zoom: 1.5 }
+    const layout = buildLayoutJson(nodes, vp)
+    expect(layout).toEqual({
+      version: 1,
+      nodes: { a: { x: 100, y: 200 } },
+      viewport: { x: -50, y: -30, zoom: 1.5 },
+    })
+  })
+
+  it('includes width/height only for nodes that have them', () => {
+    const nodes: Node<FlowNodeData>[] = [
+      { id: 'a', position: { x: 10, y: 20 }, width: 120, height: 40, data: { label: 'A', shape: 'rectangle' }, type: 'flowNode' },
+      { id: 'b', position: { x: 30, y: 40 }, data: { label: 'B', shape: 'rounded' }, type: 'flowNode' },
+    ]
+    const vp = { x: 0, y: 0, zoom: 1 }
+    const layout = buildLayoutJson(nodes, vp)
+    expect(layout.nodes['a']).toEqual({ x: 10, y: 20, width: 120, height: 40 })
+    expect(layout.nodes['b']).toEqual({ x: 30, y: 40 })
+    expect(layout.nodes['b']).not.toHaveProperty('width')
+    expect(layout.nodes['b']).not.toHaveProperty('height')
+  })
+
+  it('includes viewport', () => {
+    const nodes: Node<FlowNodeData>[] = []
+    const vp = { x: 10, y: 20, zoom: 2 }
+    const layout = buildLayoutJson(nodes, vp)
+    expect(layout.viewport).toEqual({ x: 10, y: 20, zoom: 2 })
+    expect(layout.version).toBe(1)
+  })
+})
+
 describe('useManualSave', () => {
   beforeEach(() => {
     vi.mocked(useStore.getState).mockReturnValue({
       syncDirection: null,
       nodes: [],
       edges: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
     } as never)
   })
 

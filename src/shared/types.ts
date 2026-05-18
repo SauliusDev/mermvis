@@ -1,3 +1,11 @@
+// ─── Shared Types ────────────────────────────────────────────────────────────
+
+export interface LayoutSidecar {
+  version: 1
+  nodes: Record<string, { x: number; y: number; width?: number; height?: number }>
+  viewport: { x: number; y: number; zoom: number }
+}
+
 // ─── Host → Webview ──────────────────────────────────────────────────────────
 
 export type HostToWebviewMessage =

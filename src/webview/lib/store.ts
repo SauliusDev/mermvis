@@ -84,6 +84,11 @@ interface StoreState {
   duplicateNode: (id: string) => void
   toggleNodeLock: (id: string) => void
   updateNodeColors: (id: string, colors: { fillColor?: string; strokeColor?: string; textColor?: string }) => void
+  viewport: { x: number; y: number; zoom: number }
+  viewportToRestore: { x: number; y: number; zoom: number } | null
+  setViewport: (vp: { x: number; y: number; zoom: number }) => void
+  requestViewportRestore: (vp: { x: number; y: number; zoom: number }) => void
+  clearViewportRestore: () => void
   undo: () => void
   redo: () => void
   importFromCode: (result: ParseSuccess) => void
@@ -131,6 +136,11 @@ export const useStore = create<StoreState>()((set, get) => ({
   syncDirection: null,
   setSyncDirection: (dir) => set(s => ({ ...s, syncDirection: dir })),
   pendingConnect: null,
+  viewport: { x: 0, y: 0, zoom: 1 },
+  viewportToRestore: null,
+  setViewport: (vp) => set(s => ({ ...s, viewport: vp })),
+  requestViewportRestore: (vp) => set(s => ({ ...s, viewportToRestore: vp })),
+  clearViewportRestore: () => set(s => ({ ...s, viewportToRestore: null })),
 
   addNode: (node) => {
     const { nodes, edges } = get()

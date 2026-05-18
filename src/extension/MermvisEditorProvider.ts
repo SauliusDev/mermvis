@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { getWebviewHtml } from '@tomjs/vite-plugin-vscode/webview'
 import type { HostToWebviewMessage, WebviewToHostMessage } from '../shared/types'
 import { detectDiagramType } from './diagramTypeDetector'
+import { readSidecar, writeSidecar } from './layoutSidecar'
 
 export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = 'mermvis.editor'
@@ -86,11 +87,12 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
     switch (msg.type) {
       case 'READY': {
         const autoSave = vscode.workspace.getConfiguration('mermvis').get<boolean>('autoSave', true)
+        const layoutJson = readSidecar(document.uri.fsPath)
         const loadMsg: HostToWebviewMessage = {
           type: 'LOAD',
           payload: {
             content: document.getText(),
-            layoutJson: null,
+            layoutJson,
             filename: document.uri.path.split('/').pop() ?? 'untitled.mmd',
             autoSave,
           },
@@ -107,6 +109,13 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
         )
         vscode.workspace.applyEdit(edit).then(
           success => {
+            if (success) {
+              try {
+                writeSidecar(document.uri.fsPath, msg.payload.layoutJson)
+              } catch (err) {
+                MermvisEditorProvider.outputChannel?.appendLine(`[ERROR] Failed to write layout sidecar: ${String(err)}`)
+              }
+            }
             const resultMsg: HostToWebviewMessage = {
               type: 'SAVE_RESULT',
               payload: { success },

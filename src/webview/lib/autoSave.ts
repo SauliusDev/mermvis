@@ -2,17 +2,32 @@ import { useEffect, useRef } from 'react'
 import { useStore } from './store'
 import { serialize } from './serializer'
 import { sendToHost } from '../vscode'
+import type { LayoutSidecar } from '../../shared/types'
+import type { Node } from '@xyflow/react'
+import type { FlowNodeData } from './store'
 
 export const AUTO_SAVE_DEBOUNCE_MS = 1500
-export const STUB_LAYOUT_JSON = JSON.stringify({
-  version: 1,
-  nodes: {},
-  viewport: { x: 0, y: 0, zoom: 1 },
-})
+
+export function buildLayoutJson(
+  nodes: Node<FlowNodeData>[],
+  viewport: { x: number; y: number; zoom: number }
+): LayoutSidecar {
+  const layoutNodes: LayoutSidecar['nodes'] = {}
+  for (const node of nodes) {
+    layoutNodes[node.id] = {
+      x: node.position.x,
+      y: node.position.y,
+      ...(node.width != null ? { width: node.width } : {}),
+      ...(node.height != null ? { height: node.height } : {}),
+    }
+  }
+  return { version: 1, nodes: layoutNodes, viewport }
+}
 
 function buildSavePayload() {
-  const { nodes, edges } = useStore.getState()
-  return { content: serialize({ nodes, edges }), layoutJson: STUB_LAYOUT_JSON }
+  const { nodes, edges, viewport } = useStore.getState()
+  const layout = buildLayoutJson(nodes, viewport)
+  return { content: serialize({ nodes, edges }), layoutJson: JSON.stringify(layout) }
 }
 
 export function useAutoSave(enabled: boolean): void {

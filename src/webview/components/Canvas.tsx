@@ -22,11 +22,14 @@ const edgeTypes = { default: FlowEdge }
 const VALID_PALETTE_SHAPES = new Set<string>(['rectangle', 'rounded', 'pill', 'diamond', 'circle', 'hexagon', 'cylinder', 'subgraph'])
 
 function CanvasFlow(): React.JSX.Element {
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, setViewport: rfSetViewport } = useReactFlow()
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
   const deselectAll = useStore(s => s.deselectAll)
+  const setViewport = useStore(s => s.setViewport)
+  const viewportToRestore = useStore(s => s.viewportToRestore)
+  const clearViewportRestore = useStore(s => s.clearViewportRestore)
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
   const removeEdges = useStore(s => s.removeEdges)
@@ -185,6 +188,12 @@ function CanvasFlow(): React.JSX.Element {
     }
   }
 
+  useEffect(() => {
+    if (!viewportToRestore) return
+    clearViewportRestore()
+    rfSetViewport(viewportToRestore)
+  }, [viewportToRestore, clearViewportRestore, rfSetViewport])
+
   // Escape key deselects all nodes and clears pendingConnect; Delete/Backspace removes selected nodes
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
@@ -234,6 +243,7 @@ function CanvasFlow(): React.JSX.Element {
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
+        onViewportChange={(vp) => setViewport(vp)}
         connectionMode={ConnectionMode.Loose}
         snapToGrid={true}
         snapGrid={[GRID_SNAP, GRID_SNAP] as [number, number]}

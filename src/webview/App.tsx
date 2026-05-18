@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { sendToHost, onHostMessage } from './vscode'
-import type { HostToWebviewMessage } from '../shared/types'
+import type { HostToWebviewMessage, LayoutSidecar } from '../shared/types'
 import { useStore } from './lib/store'
 import { useAutoSave, useManualSave } from './lib/autoSave'
 import { parseMermaidFlowchart } from './lib/parser'
@@ -28,6 +28,7 @@ const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
 export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
   const importFromCode = useStore(s => s.importFromCode)
+  const requestViewportRestore = useStore(s => s.requestViewportRestore)
   const [autoSave, setAutoSave] = useState(true)
 
   useAutoSave(autoSave)
@@ -60,18 +61,38 @@ export default function App(): React.JSX.Element {
 
     const cleanup = onHostMessage((msg: HostToWebviewMessage) => {
       switch (msg.type) {
-        case 'LOAD':
+        case 'LOAD': {
           if (msg.payload.filename) setFilename(msg.payload.filename)
           if (msg.payload.autoSave !== undefined) setAutoSave(msg.payload.autoSave)
-          {
-            const result = parseMermaidFlowchart(msg.payload.content)
-            if ('error' in result) {
-              sendToHost({ type: 'LOG', payload: { level: 'error', message: `Failed to parse diagram: ${result.error}` } })
-            } else {
-              importFromCode(result)
+          const parsed = parseMermaidFlowchart(msg.payload.content)
+          if ('error' in parsed) {
+            sendToHost({ type: 'LOG', payload: { level: 'error', message: `Failed to parse diagram: ${parsed.error}` } })
+            break
+          }
+          if (msg.payload.layoutJson) {
+            try {
+              const layout = JSON.parse(msg.payload.layoutJson) as LayoutSidecar
+              const nodesWithPositions = parsed.nodes.map(n => {
+                const saved = layout.nodes[n.id]
+                if (!saved) return n
+                return {
+                  ...n,
+                  position: { x: saved.x, y: saved.y },
+                  ...(saved.width != null ? { width: saved.width } : {}),
+                  ...(saved.height != null ? { height: saved.height } : {}),
+                }
+              })
+              importFromCode({ ...parsed, nodes: nodesWithPositions })
+              if (layout.viewport) requestViewportRestore(layout.viewport)
+            } catch {
+              sendToHost({ type: 'LOG', payload: { level: 'error', message: 'Failed to parse layout sidecar — loading without positions' } })
+              importFromCode(parsed)
             }
+          } else {
+            importFromCode(parsed)
           }
           break
+        }
         case 'THEME_CHANGED':
           // Story 12.3 — adaptive theme activation
           break
