@@ -20,6 +20,8 @@ import './styles/components/palette.css'
 import './styles/components/node-toolbar.css'
 import './styles/components/node-color-picker.css'
 
+const CodePanel = React.lazy(() => import('./components/CodePanel'))
+
 export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
 
@@ -35,6 +37,11 @@ export default function App(): React.JSX.Element {
       const anyActive = (Object.keys(next) as PanelId[]).some(k => next[k])
       return anyActive ? next : prev
     })
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => { import('./components/CodePanel') }, 1500)
+    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
@@ -69,7 +76,15 @@ export default function App(): React.JSX.Element {
     <div className="app">
       <TopBar panelVisible={panelVisible} onTogglePanel={handleTogglePanel} />
       <main className="app__main">
-        <PanelLayout panelVisible={panelVisible} canvas={<Canvas />} />
+        <PanelLayout
+          panelVisible={panelVisible}
+          canvas={<Canvas />}
+          code={
+            <React.Suspense fallback={<div className="code-panel-loading" />}>
+              <CodePanel />
+            </React.Suspense>
+          }
+        />
       </main>
     </div>
   )
