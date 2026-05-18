@@ -10,6 +10,7 @@ export interface LoadPayload {
   content: string            // raw .mmd file text
   layoutJson: string | null  // stringified .mmd.layout.json, or null if no sidecar
   filename?: string          // basename of the .mmd file; sent by MermvisEditorProvider on document open
+  autoSave?: boolean         // whether auto-save debounce is enabled; defaults to true
 }
 
 export interface ThemePayload {

@@ -85,12 +85,14 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
   ): void {
     switch (msg.type) {
       case 'READY': {
+        const autoSave = vscode.workspace.getConfiguration('mermvis').get<boolean>('autoSave', true)
         const loadMsg: HostToWebviewMessage = {
           type: 'LOAD',
           payload: {
             content: document.getText(),
             layoutJson: null,
             filename: document.uri.path.split('/').pop() ?? 'untitled.mmd',
+            autoSave,
           },
         }
         webviewPanel.webview.postMessage(loadMsg)

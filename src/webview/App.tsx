@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { sendToHost, onHostMessage } from './vscode'
 import type { HostToWebviewMessage } from '../shared/types'
 import { useStore } from './lib/store'
+import { useAutoSave, useManualSave } from './lib/autoSave'
+import { parseMermaidFlowchart } from './lib/parser'
 import Canvas from './components/Canvas'
 import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
@@ -25,6 +27,11 @@ const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
 
 export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
+  const importFromCode = useStore(s => s.importFromCode)
+  const [autoSave, setAutoSave] = useState(true)
+
+  useAutoSave(autoSave)
+  useManualSave()
 
   const [panelVisible, setPanelVisible] = useState<PanelVisible>({
     canvas: true,
@@ -55,7 +62,15 @@ export default function App(): React.JSX.Element {
       switch (msg.type) {
         case 'LOAD':
           if (msg.payload.filename) setFilename(msg.payload.filename)
-          // Future Story 6.4: parseMermaidFlowchart(msg.payload.content) → setCanvasState()
+          if (msg.payload.autoSave !== undefined) setAutoSave(msg.payload.autoSave)
+          {
+            const result = parseMermaidFlowchart(msg.payload.content)
+            if ('error' in result) {
+              sendToHost({ type: 'LOG', payload: { level: 'error', message: `Failed to parse diagram: ${result.error}` } })
+            } else {
+              importFromCode(result)
+            }
+          }
           break
         case 'THEME_CHANGED':
           // Story 12.3 — adaptive theme activation
@@ -64,7 +79,9 @@ export default function App(): React.JSX.Element {
           // Story 6.5 — bidirectional sync conflict resolution
           break
         case 'SAVE_RESULT':
-          // Story 8 — save confirmation feedback
+          if (!msg.payload.success) {
+            sendToHost({ type: 'LOG', payload: { level: 'error', message: `Auto-save failed: ${msg.payload.error ?? 'unknown error'}` } })
+          }
           break
         default: {
           const _exhaustive: never = msg

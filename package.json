@@ -15,7 +15,17 @@
         "selector": [{ "filenamePattern": "*.mmd" }],
         "priority": "default"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Mermvis",
+      "properties": {
+        "mermvis.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save the diagram after editing stops (1.5 second debounce). When disabled, use Ctrl+S / ⌘S to save manually."
+        }
+      }
+    }
   },
   "scripts": {
     "dev": "concurrently -n ext,web \"node esbuild.mjs --watch\" \"vite\"",
