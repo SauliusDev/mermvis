@@ -50,6 +50,7 @@ export interface SavePayload {
 export interface ExportPayload {
   content: string
   format: 'mmd'
+  subtype: 'file' | 'clipboard'
 }
 
 export interface LogPayload {

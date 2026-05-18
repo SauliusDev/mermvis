@@ -147,7 +147,41 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
         break
       }
       case 'EXPORT': {
-        // Story 11 — no-op
+        const { content, subtype } = msg.payload
+        if (subtype === 'clipboard') {
+          vscode.env.clipboard.writeText(content).then(
+            undefined,
+            (err: unknown) => {
+              MermvisEditorProvider.outputChannel?.appendLine(
+                `[ERROR] Clipboard write failed: ${String(err)}`
+              )
+            }
+          )
+        } else {
+          // subtype === 'file'
+          vscode.window.showSaveDialog({
+            defaultUri: document.uri,
+            filters: { 'Mermaid': ['mmd'] },
+            saveLabel: 'Export',
+          }).then(
+            (uri) => {
+              if (!uri) return  // user cancelled — no error
+              vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content)).then(
+                undefined,
+                (err: unknown) => {
+                  MermvisEditorProvider.outputChannel?.appendLine(
+                    `[ERROR] Export file write failed: ${String(err)}`
+                  )
+                }
+              )
+            },
+            (err: unknown) => {
+              MermvisEditorProvider.outputChannel?.appendLine(
+                `[ERROR] Save dialog failed: ${String(err)}`
+              )
+            }
+          )
+        }
         break
       }
       default: {

@@ -40,6 +40,115 @@ describe('MermvisEditorProvider', () => {
     )
   })
 
+  describe('EXPORT handler', () => {
+    const fakeContext = {
+      subscriptions: [],
+      extensionUri: vscode.Uri.file('/fake/extension'),
+    } as unknown as vscode.ExtensionContext
+
+    const fakeDocument = {
+      uri: vscode.Uri.file('/test/diagram.mmd'),
+      getText: vi.fn(() => 'flowchart TD\n  A[Test]'),
+      lineCount: 2,
+    } as unknown as vscode.TextDocument
+
+    let capturedWebviewMessageHandler: ((msg: WebviewToHostMessage) => void) | undefined
+
+    beforeEach(() => {
+      capturedWebviewMessageHandler = undefined
+
+      vi.mocked(vscode.workspace.onDidChangeTextDocument).mockImplementation(
+        () => ({ dispose: vi.fn() })
+      )
+
+      vi.mocked(vscode.workspace.applyEdit).mockResolvedValue(true as never)
+
+      vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+        get: vi.fn(() => true),
+      } as unknown as vscode.WorkspaceConfiguration)
+
+      const fakePanel = {
+        webview: {
+          options: {},
+          html: '',
+          onDidReceiveMessage: vi.fn((cb: (msg: WebviewToHostMessage) => void) => {
+            capturedWebviewMessageHandler = cb
+            return { dispose: vi.fn() }
+          }),
+          postMessage: vi.fn(),
+        },
+        onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+      }
+
+      const provider = new MermvisEditorProvider(fakeContext)
+      provider.resolveCustomTextEditor(
+        fakeDocument,
+        fakePanel as unknown as vscode.WebviewPanel,
+        { isCancellationRequested: false } as vscode.CancellationToken,
+      )
+    })
+
+    it('EXPORT clipboard: calls vscode.env.clipboard.writeText with content', async () => {
+      vi.mocked(vscode.env.clipboard.writeText).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'clipboard' },
+      })
+      await Promise.resolve()
+      expect(vscode.env.clipboard.writeText).toHaveBeenCalledWith('flowchart LR\n  A-->B')
+    })
+
+    it('EXPORT clipboard: does not crash when clipboard write rejects', async () => {
+      vi.mocked(vscode.env.clipboard.writeText).mockRejectedValue(new Error('write failed') as never)
+      await expect(async () => {
+        capturedWebviewMessageHandler!({
+          type: 'EXPORT',
+          payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'clipboard' },
+        })
+        await Promise.resolve()
+      }).not.toThrow()
+    })
+
+    it('EXPORT file: calls showSaveDialog with Mermaid filter', async () => {
+      const fakeUri = vscode.Uri.file('/test/output.mmd')
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(fakeUri as never)
+      vi.mocked(vscode.workspace.fs.writeFile).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'file' },
+      })
+      await Promise.resolve()
+      expect(vscode.window.showSaveDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ filters: { 'Mermaid': ['mmd'] } })
+      )
+    })
+
+    it('EXPORT file: calls workspace.fs.writeFile with encoded content when dialog confirms', async () => {
+      const fakeUri = vscode.Uri.file('/test/output.mmd')
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(fakeUri as never)
+      vi.mocked(vscode.workspace.fs.writeFile).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'file' },
+      })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalledWith(
+        fakeUri,
+        expect.any(Uint8Array)
+      )
+    })
+
+    it('EXPORT file: does not call writeFile when dialog is cancelled (returns undefined)', async () => {
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'file' },
+      })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled()
+    })
+  })
+
   describe('EXTERNAL_FILE_CHANGE suppress flag', () => {
     const fakeContext = {
       subscriptions: [],

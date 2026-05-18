@@ -5,6 +5,19 @@ import { render, screen, fireEvent } from '@testing-library/react'
 // vi.mock() MUST be at module top level — hoisted by Vitest before imports.
 vi.mock('zustand')
 
+const { mockSendToHost, mockSerialize } = vi.hoisted(() => ({
+  mockSendToHost: vi.fn(),
+  mockSerialize: vi.fn(() => 'flowchart LR\n  A-->B'),
+}))
+
+vi.mock('@/vscode', () => ({
+  sendToHost: mockSendToHost,
+}))
+
+vi.mock('@/lib/serializer', () => ({
+  serialize: mockSerialize,
+}))
+
 import { useStore } from '@/lib/store'
 import TopBar from './TopBar'
 import type { PanelVisible } from './TopBar'
@@ -19,6 +32,9 @@ const defaultProps = {
 beforeEach(() => {
   useStore.setState({ filename: 'test-diagram.mmd' })
   mockOnTogglePanel.mockClear()
+  mockSendToHost.mockClear()
+  mockSerialize.mockClear()
+  mockSerialize.mockReturnValue('flowchart LR\n  A-->B')
 })
 
 describe('TopBar', () => {
@@ -104,5 +120,45 @@ describe('TopBar', () => {
     const settingsBtn = screen.getByRole('button', { name: 'Settings' })
     expect((themeBtn as HTMLButtonElement).disabled).toBe(true)
     expect((settingsBtn as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('renders Export .mmd button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByRole('button', { name: 'Export .mmd' })).not.toBeNull()
+  })
+
+  it('renders Copy syntax button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByRole('button', { name: 'Copy syntax' })).not.toBeNull()
+  })
+
+  it('Export .mmd button is not disabled', () => {
+    render(<TopBar {...defaultProps} />)
+    const btn = screen.getByRole('button', { name: 'Export .mmd' }) as HTMLButtonElement
+    expect(btn.disabled).toBe(false)
+  })
+
+  it('Copy syntax button is not disabled', () => {
+    render(<TopBar {...defaultProps} />)
+    const btn = screen.getByRole('button', { name: 'Copy syntax' }) as HTMLButtonElement
+    expect(btn.disabled).toBe(false)
+  })
+
+  it('clicking Export .mmd calls sendToHost with file subtype', () => {
+    render(<TopBar {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Export .mmd' }))
+    expect(mockSendToHost).toHaveBeenCalledWith({
+      type: 'EXPORT',
+      payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'file' },
+    })
+  })
+
+  it('clicking Copy syntax calls sendToHost with clipboard subtype', () => {
+    render(<TopBar {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy syntax' }))
+    expect(mockSendToHost).toHaveBeenCalledWith({
+      type: 'EXPORT',
+      payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'clipboard' },
+    })
   })
 })

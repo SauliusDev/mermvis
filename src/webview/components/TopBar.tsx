@@ -1,5 +1,7 @@
 import React from 'react'
 import { useStore } from '@/lib/store'
+import { sendToHost } from '@/vscode'
+import { serialize } from '@/lib/serializer'
 
 export type PanelId = 'canvas' | 'code' | 'preview'
 export type PanelVisible = Record<PanelId, boolean>
@@ -11,6 +13,18 @@ interface TopBarProps {
 
 export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): React.JSX.Element {
   const filename = useStore(s => s.filename)
+
+  const handleExportFile = () => {
+    const { nodes, edges } = useStore.getState()
+    const content = serialize({ nodes, edges })
+    sendToHost({ type: 'EXPORT', payload: { content, format: 'mmd', subtype: 'file' } })
+  }
+
+  const handleCopyClipboard = () => {
+    const { nodes, edges } = useStore.getState()
+    const content = serialize({ nodes, edges })
+    sendToHost({ type: 'EXPORT', payload: { content, format: 'mmd', subtype: 'clipboard' } })
+  }
 
   return (
     <header className="topbar" role="banner">
@@ -32,6 +46,18 @@ export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): Re
         ))}
       </nav>
       <div className="topbar__actions">
+        <button
+          className="topbar__btn"
+          aria-label="Export .mmd"
+          title="Export .mmd"
+          onClick={handleExportFile}
+        >⬇</button>
+        <button
+          className="topbar__btn"
+          aria-label="Copy syntax"
+          title="Copy syntax to clipboard"
+          onClick={handleCopyClipboard}
+        >⎘</button>
         <button className="topbar__btn" aria-label="Theme picker" title="Theme picker" disabled>◑</button>
         <button className="topbar__btn" aria-label="Settings" title="Settings" disabled>⚙</button>
       </div>
