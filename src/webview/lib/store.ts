@@ -54,6 +54,8 @@ interface StoreState {
     past: CanvasSnapshot[]
     future: CanvasSnapshot[]
   }
+  filename: string
+  setFilename: (filename: string) => void
   pendingConnect: { sourceId: string } | null
   addNode: (node: Node<FlowNodeData>) => void
   addSubgraph: () => void
@@ -118,6 +120,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   nodes: [],
   edges: [],
   history: { past: [], future: [] },
+  filename: 'untitled.mmd',
+  setFilename: (filename) => set({ filename }),
   pendingConnect: null,
 
   addNode: (node) => {

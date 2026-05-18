@@ -87,7 +87,11 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
       case 'READY': {
         const loadMsg: HostToWebviewMessage = {
           type: 'LOAD',
-          payload: { content: document.getText(), layoutJson: null },
+          payload: {
+            content: document.getText(),
+            layoutJson: null,
+            filename: document.uri.path.split('/').pop() ?? 'untitled.mmd',
+          },
         }
         webviewPanel.webview.postMessage(loadMsg)
         break

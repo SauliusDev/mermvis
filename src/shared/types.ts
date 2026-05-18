@@ -9,6 +9,7 @@ export type HostToWebviewMessage =
 export interface LoadPayload {
   content: string            // raw .mmd file text
   layoutJson: string | null  // stringified .mmd.layout.json, or null if no sidecar
+  filename?: string          // basename of the .mmd file; sent by MermvisEditorProvider on document open
 }
 
 export interface ThemePayload {

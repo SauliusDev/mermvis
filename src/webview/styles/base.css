@@ -54,3 +54,25 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* ── App root layout ─────────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app__main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0; /* required: prevents flex children from overflowing */
+}
+
+.app__panel {
+  flex: 1;
+  overflow: hidden;
+  min-width: var(--mv-panel-min-width);
+}

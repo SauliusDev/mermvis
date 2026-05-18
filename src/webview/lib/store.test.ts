@@ -898,4 +898,17 @@ describe('useStore', () => {
       expect(useStore.getState().history.past).toHaveLength(2)
     })
   })
+
+  describe('setFilename', () => {
+    it('updates filename in the store', () => {
+      useStore.getState().setFilename('my-diagram.mmd')
+      expect(useStore.getState().filename).toBe('my-diagram.mmd')
+    })
+
+    it('does not create a history entry when filename is set', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().setFilename('another.mmd')
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
 })

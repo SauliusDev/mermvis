@@ -1,0 +1,116 @@
+/* ── TopBar shell ───────────────────────────────────────────────────── */
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--mv-topbar-height);
+  background: var(--mv-bg-surface);
+  border-bottom: 1px solid var(--mv-border);
+  z-index: var(--mv-z-topbar);
+  flex-shrink: 0;
+  padding: 0 14px;
+}
+
+/* ── Brand section (left) ───────────────────────────────────────────── */
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.topbar__logo {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--mv-accent);
+  user-select: none;
+}
+
+.topbar__name {
+  font-family: var(--mv-font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mv-text-bright);
+  user-select: none;
+}
+
+.topbar__filename {
+  font-family: var(--mv-font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mv-text-secondary);
+  margin-left: 4px;
+}
+
+/* ── Tab group (center, absolutely positioned) ──────────────────────── */
+.topbar__tabs {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.topbar__tab {
+  padding: 5px 12px;
+  font-family: var(--mv-font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mv-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--mv-r-sm);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.topbar__tab:hover {
+  background: var(--mv-bg-hover);
+  color: var(--mv-text-primary);
+}
+
+.topbar__tab--active {
+  background: var(--mv-accent-dim);
+  border-color: var(--mv-accent-mid);
+  color: var(--mv-text-bright);
+}
+
+.topbar__tab--active:hover {
+  background: var(--mv-accent-dim);
+  color: var(--mv-text-bright);
+}
+
+/* ── Actions section (right) ────────────────────────────────────────── */
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.topbar__btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--mv-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--mv-r-sm);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.topbar__btn:hover:not(:disabled) {
+  background: var(--mv-bg-hover);
+  color: var(--mv-text-primary);
+}
+
+.topbar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
