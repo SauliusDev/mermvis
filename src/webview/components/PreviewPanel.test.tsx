@@ -24,6 +24,14 @@ vi.mock('../lib/serializer', () => ({
   serialize: vi.fn(() => 'flowchart TD\n  A[Test]'),
 }))
 
+const mockPreviewBarBag: Record<string, any> = {}
+vi.mock('./PreviewBar', () => ({
+  default: (props: any) => {
+    Object.assign(mockPreviewBarBag, props)
+    return null
+  },
+}))
+
 import mermaid from 'mermaid'
 import PreviewPanel from './PreviewPanel'
 
@@ -42,8 +50,7 @@ describe('PreviewPanel', () => {
   })
 
   it('calls mermaid.initialize at module load', () => {
-    // initialize is called at module scope when PreviewPanel.tsx is imported —
-    // check the recorded calls (not cleared because we only reset render in afterEach)
+    // initialize is called at module scope AND inside useEffect — assert call shape, not count
     expect(vi.mocked(mermaid).initialize).toHaveBeenCalledWith(
       expect.objectContaining({ startOnLoad: false })
     )
@@ -105,5 +112,31 @@ describe('PreviewPanel', () => {
     })
 
     expect(vi.mocked(mermaid).render).toHaveBeenCalledTimes(2)
+  })
+
+  it('re-renders with direction applied in code', async () => {
+    const { serialize } = await import('../lib/serializer')
+    vi.mocked(serialize).mockReturnValue('flowchart TD\n  A[Test]')
+
+    await act(async () => { render(<PreviewPanel />) })
+    vi.mocked(mermaid).render.mockClear()
+
+    await act(async () => {
+      mockPreviewBarBag.onDirectionChange('LR')
+    })
+
+    expect(vi.mocked(mermaid).render).toHaveBeenCalledWith(
+      expect.stringMatching(/^mermaid-svg-/),
+      'flowchart LR\n  A[Test]'
+    )
+  })
+
+  it('passes theme to mermaid.initialize inside useEffect', async () => {
+    await act(async () => {
+      render(<PreviewPanel />)
+    })
+    expect(vi.mocked(mermaid).initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ theme: 'dark' })
+    )
   })
 })
