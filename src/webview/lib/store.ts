@@ -57,6 +57,11 @@ interface StoreState {
     past: CanvasSnapshot[]
     future: CanvasSnapshot[]
   }
+  isDirty: boolean
+  clearDirty: () => void
+  fitViewRequested: boolean
+  requestFitView: () => void
+  clearFitViewRequest: () => void
   filename: string
   setFilename: (filename: string) => void
   syncDirection: SyncDirection
@@ -114,6 +119,7 @@ function withHistory(
     ...state,
     nodes: next.nodes,
     edges: next.edges,
+    isDirty: true,
     history: {
       // Cap past at MAX_HISTORY — slice before appending to avoid off-by-one
       past: [
@@ -131,6 +137,11 @@ export const useStore = create<StoreState>()((set, get) => ({
   nodes: [],
   edges: [],
   history: { past: [], future: [] },
+  isDirty: false,
+  clearDirty: () => set(s => ({ ...s, isDirty: false })),
+  fitViewRequested: false,
+  requestFitView: () => set(s => ({ ...s, fitViewRequested: true })),
+  clearFitViewRequest: () => set(s => ({ ...s, fitViewRequested: false })),
   filename: 'untitled.mmd',
   setFilename: (filename) => set({ filename }),
   syncDirection: null,

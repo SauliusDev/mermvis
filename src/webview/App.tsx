@@ -4,6 +4,7 @@ import type { HostToWebviewMessage, LayoutSidecar } from '../shared/types'
 import { useStore } from './lib/store'
 import { useAutoSave, useManualSave } from './lib/autoSave'
 import { parseMermaidFlowchart } from './lib/parser'
+import { applyDagreLayout } from './lib/layout'
 import Canvas from './components/Canvas'
 import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
@@ -29,6 +30,8 @@ export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
   const importFromCode = useStore(s => s.importFromCode)
   const requestViewportRestore = useStore(s => s.requestViewportRestore)
+  const requestFitView = useStore(s => s.requestFitView)
+  const clearDirty = useStore(s => s.clearDirty)
   const [autoSave, setAutoSave] = useState(true)
 
   useAutoSave(autoSave)
@@ -72,15 +75,22 @@ export default function App(): React.JSX.Element {
           if (msg.payload.layoutJson) {
             try {
               const layout = JSON.parse(msg.payload.layoutJson) as LayoutSidecar
+              const dagreNodes = parsed.nodes.length > 0
+                ? applyDagreLayout(parsed.nodes, parsed.edges)
+                : parsed.nodes
+              const dagreById = new Map(dagreNodes.map(n => [n.id, n]))
               const nodesWithPositions = parsed.nodes.map(n => {
                 const saved = layout.nodes[n.id]
-                if (!saved) return n
-                return {
-                  ...n,
-                  position: { x: saved.x, y: saved.y },
-                  ...(saved.width != null ? { width: saved.width } : {}),
-                  ...(saved.height != null ? { height: saved.height } : {}),
+                if (saved) {
+                  return {
+                    ...n,
+                    position: { x: saved.x, y: saved.y },
+                    ...(saved.width != null ? { width: saved.width } : {}),
+                    ...(saved.height != null ? { height: saved.height } : {}),
+                  }
                 }
+                const fromDagre = dagreById.get(n.id)
+                return fromDagre ?? n
               })
               importFromCode({ ...parsed, nodes: nodesWithPositions })
               if (layout.viewport) requestViewportRestore(layout.viewport)
@@ -89,18 +99,48 @@ export default function App(): React.JSX.Element {
               importFromCode(parsed)
             }
           } else {
-            importFromCode(parsed)
+            if (parsed.nodes.length > 0) {
+              const laidOut = applyDagreLayout(parsed.nodes, parsed.edges)
+              importFromCode({ ...parsed, nodes: laidOut })
+              requestFitView()
+            } else {
+              importFromCode(parsed)
+            }
           }
           break
         }
         case 'THEME_CHANGED':
           // Story 12.3 — adaptive theme activation
           break
-        case 'EXTERNAL_FILE_CHANGE':
-          // Story 6.5 — bidirectional sync conflict resolution
+        case 'EXTERNAL_FILE_CHANGE': {
+          const { isDirty } = useStore.getState()
+          if (isDirty) {
+            sendToHost({
+              type: 'LOG',
+              payload: { level: 'warn', message: 'External file change detected — canvas has unsaved edits. Save first (Ctrl+S) to apply the external update.' },
+            })
+            break
+          }
+          const extParsed = parseMermaidFlowchart(msg.payload.content)
+          if ('error' in extParsed) {
+            sendToHost({ type: 'LOG', payload: { level: 'error', message: `External file change: failed to parse: ${extParsed.error}` } })
+            break
+          }
+          if (extParsed.nodes.length > 0) {
+            const laidOut = applyDagreLayout(extParsed.nodes, extParsed.edges)
+            importFromCode({ ...extParsed, nodes: laidOut })
+            clearDirty()
+            requestFitView()
+          } else {
+            importFromCode(extParsed)
+            clearDirty()
+          }
           break
+        }
         case 'SAVE_RESULT':
-          if (!msg.payload.success) {
+          if (msg.payload.success) {
+            clearDirty()
+          } else {
             sendToHost({ type: 'LOG', payload: { level: 'error', message: `Auto-save failed: ${msg.payload.error ?? 'unknown error'}` } })
           }
           break

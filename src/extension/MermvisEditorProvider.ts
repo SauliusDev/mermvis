@@ -11,6 +11,8 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
 
   private static outputChannel: vscode.OutputChannel | undefined
 
+  private _suppressNextExternalChange = false
+
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     if (!MermvisEditorProvider.outputChannel) {
       MermvisEditorProvider.outputChannel = vscode.window.createOutputChannel('Mermvis')
@@ -66,13 +68,16 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
 
     disposables.push(
       vscode.workspace.onDidChangeTextDocument(e => {
-        if (e.document.uri.toString() === document.uri.toString()) {
-          const msg: HostToWebviewMessage = {
-            type: 'EXTERNAL_FILE_CHANGE',
-            payload: { content: e.document.getText() },
-          }
-          webviewPanel.webview.postMessage(msg)
+        if (e.document.uri.toString() !== document.uri.toString()) return
+        if (this._suppressNextExternalChange) {
+          this._suppressNextExternalChange = false
+          return
         }
+        const msg: HostToWebviewMessage = {
+          type: 'EXTERNAL_FILE_CHANGE',
+          payload: { content: e.document.getText() },
+        }
+        webviewPanel.webview.postMessage(msg)
       })
     )
 
@@ -107,6 +112,7 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
           new vscode.Range(0, 0, document.lineCount, 0),
           msg.payload.content
         )
+        this._suppressNextExternalChange = true
         vscode.workspace.applyEdit(edit).then(
           success => {
             if (success) {

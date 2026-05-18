@@ -22,7 +22,7 @@ const edgeTypes = { default: FlowEdge }
 const VALID_PALETTE_SHAPES = new Set<string>(['rectangle', 'rounded', 'pill', 'diamond', 'circle', 'hexagon', 'cylinder', 'subgraph'])
 
 function CanvasFlow(): React.JSX.Element {
-  const { screenToFlowPosition, setViewport: rfSetViewport } = useReactFlow()
+  const { screenToFlowPosition, setViewport: rfSetViewport, fitView } = useReactFlow()
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
@@ -30,6 +30,8 @@ function CanvasFlow(): React.JSX.Element {
   const setViewport = useStore(s => s.setViewport)
   const viewportToRestore = useStore(s => s.viewportToRestore)
   const clearViewportRestore = useStore(s => s.clearViewportRestore)
+  const fitViewRequested = useStore(s => s.fitViewRequested)
+  const clearFitViewRequest = useStore(s => s.clearFitViewRequest)
   const moveNodes = useStore(s => s.moveNodes)
   const removeNodes = useStore(s => s.removeNodes)
   const removeEdges = useStore(s => s.removeEdges)
@@ -193,6 +195,12 @@ function CanvasFlow(): React.JSX.Element {
     clearViewportRestore()
     rfSetViewport(viewportToRestore)
   }, [viewportToRestore, clearViewportRestore, rfSetViewport])
+
+  useEffect(() => {
+    if (!fitViewRequested) return
+    clearFitViewRequest()
+    fitView({ padding: 0.1, duration: 0 })
+  }, [fitViewRequested, clearFitViewRequest, fitView])
 
   // Escape key deselects all nodes and clears pendingConnect; Delete/Backspace removes selected nodes
   useEffect(() => {

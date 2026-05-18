@@ -999,4 +999,38 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBe(before)
     })
   })
+
+  describe('isDirty', () => {
+    it('defaults to false', () => {
+      expect(useStore.getState().isDirty).toBe(false)
+    })
+
+    it('is set to true after any withHistory() mutation (e.g. addNode)', () => {
+      useStore.getState().addNode(makeNode('a'))
+      expect(useStore.getState().isDirty).toBe(true)
+    })
+
+    it('clearDirty() resets isDirty to false', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().clearDirty()
+      expect(useStore.getState().isDirty).toBe(false)
+    })
+  })
+
+  describe('fitViewRequested', () => {
+    it('defaults to false', () => {
+      expect(useStore.getState().fitViewRequested).toBe(false)
+    })
+
+    it('requestFitView() sets fitViewRequested to true', () => {
+      useStore.getState().requestFitView()
+      expect(useStore.getState().fitViewRequested).toBe(true)
+    })
+
+    it('clearFitViewRequest() sets fitViewRequested to false', () => {
+      useStore.getState().requestFitView()
+      useStore.getState().clearFitViewRequest()
+      expect(useStore.getState().fitViewRequested).toBe(false)
+    })
+  })
 })
