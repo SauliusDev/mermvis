@@ -1,5 +1,5 @@
-import { renderHook } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // All vi.mock() at top level — Vitest hoists these before imports
 vi.mock('@codemirror/view', () => ({
@@ -10,8 +10,13 @@ vi.mock('./store', () => ({
   useStore: vi.fn(),
 }))
 
-import { useSyncCanvasToCode } from './sync'
+vi.mock('./parser', () => ({
+  parseMermaidFlowchart: vi.fn(),
+}))
+
+import { useSyncCanvasToCode, useSyncCodeToCanvas } from './sync'
 import { useStore } from './store'
+import { parseMermaidFlowchart } from './parser'
 
 function makeMockView(docContent: string, cursorHead = 0) {
   let currentContent = docContent
@@ -119,5 +124,144 @@ describe('useSyncCanvasToCode', () => {
 
     rerender({ code: 'second update' })
     expect(view.dispatch).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('useSyncCodeToCanvas', () => {
+  let mockState: {
+    syncDirection: 'canvas' | 'code' | null
+    setSyncDirection: ReturnType<typeof vi.fn>
+    importFromCode: ReturnType<typeof vi.fn>
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    mockState = {
+      syncDirection: null,
+      setSyncDirection: vi.fn(),
+      importFromCode: vi.fn(),
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(useStore as any).getState = vi.fn(() => mockState)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
+
+  function makeUpdate(docChanged: boolean, docContent = 'graph TD\n  A[Node]') {
+    return {
+      docChanged,
+      view: {
+        state: {
+          doc: { toString: () => docContent },
+        },
+      },
+    }
+  }
+
+  it('returns a stable function reference across renders', () => {
+    const { result, rerender } = renderHook(() => useSyncCodeToCanvas())
+    const first = result.current
+    rerender()
+    expect(result.current).toBe(first)
+  })
+
+  it('does nothing when update.docChanged is false', () => {
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(false) as never)
+    })
+    expect(mockState.setSyncDirection).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when syncDirection is "canvas"', () => {
+    mockState.syncDirection = 'canvas'
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true) as never)
+    })
+    expect(mockState.setSyncDirection).not.toHaveBeenCalled()
+    expect(mockState.importFromCode).not.toHaveBeenCalled()
+  })
+
+  it('calls setSyncDirection("code") immediately when docChanged', () => {
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true) as never)
+    })
+    expect(mockState.setSyncDirection).toHaveBeenCalledWith('code')
+  })
+
+  it('clears previous timer when called again before 300ms', () => {
+    vi.mocked(parseMermaidFlowchart).mockReturnValue({
+      nodes: [], edges: [], passthroughLines: [],
+    })
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true, 'v1') as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+    act(() => {
+      result.current(makeUpdate(true, 'v2') as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(mockState.importFromCode).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls parseMermaidFlowchart and importFromCode after 300ms on success', () => {
+    const parsed = { nodes: [], edges: [], passthroughLines: [] }
+    vi.mocked(parseMermaidFlowchart).mockReturnValue(parsed)
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true) as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(vi.mocked(parseMermaidFlowchart)).toHaveBeenCalled()
+    expect(mockState.importFromCode).toHaveBeenCalledWith(parsed)
+  })
+
+  it('does not call importFromCode on parse error', () => {
+    vi.mocked(parseMermaidFlowchart).mockReturnValue({ error: 'invalid syntax' })
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true, 'invalid code') as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(mockState.importFromCode).not.toHaveBeenCalled()
+  })
+
+  it('calls setSyncDirection(null) after timer fires on success', () => {
+    const parsed = { nodes: [], edges: [], passthroughLines: [] }
+    vi.mocked(parseMermaidFlowchart).mockReturnValue(parsed)
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true) as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(mockState.setSyncDirection).toHaveBeenLastCalledWith(null)
+  })
+
+  it('calls setSyncDirection(null) after timer fires on parse error', () => {
+    vi.mocked(parseMermaidFlowchart).mockReturnValue({ error: 'bad syntax' })
+    const { result } = renderHook(() => useSyncCodeToCanvas())
+    act(() => {
+      result.current(makeUpdate(true, 'bad code') as never)
+    })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(mockState.setSyncDirection).toHaveBeenLastCalledWith(null)
   })
 })

@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import type { RefObject } from 'react'
-import type { EditorView } from '@codemirror/view'
+import type { EditorView, ViewUpdate } from '@codemirror/view'
 import { useStore } from './store'
+import { parseMermaidFlowchart } from './parser'
 
 export function useSyncCanvasToCode(
   viewRef: RefObject<EditorView | null>,
@@ -25,4 +26,39 @@ export function useSyncCanvasToCode(
       view.dispatch({ selection: { anchor: clampedPos } })
     }
   }, [code, syncDirection, viewRef])
+}
+
+export function useSyncCodeToCanvas(): (update: ViewUpdate) => void {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  return useCallback((update: ViewUpdate): void => {
+    if (!update.docChanged) return
+
+    const { syncDirection, setSyncDirection, importFromCode } = useStore.getState()
+    if (syncDirection === 'canvas') return
+
+    setSyncDirection('code')
+    if (timerRef.current) clearTimeout(timerRef.current)
+
+    timerRef.current = setTimeout(() => {
+      // Re-check direction: a canvas drag may have started during the debounce window
+      if (useStore.getState().syncDirection === 'canvas') {
+        timerRef.current = null
+        return
+      }
+      const code = update.view.state.doc.toString()
+      const result = parseMermaidFlowchart(code)
+      if (!('error' in result)) {
+        importFromCode(result)
+      }
+      setSyncDirection(null)
+      timerRef.current = null
+    }, 300)
+  }, [])
 }

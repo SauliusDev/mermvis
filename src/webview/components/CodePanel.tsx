@@ -1,11 +1,12 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { EditorView, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view'
+import type { ViewUpdate } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { StreamLanguage, HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { useStore } from '../lib/store'
 import { serialize } from '../lib/serializer'
-import { useSyncCanvasToCode } from '../lib/sync'
+import { useSyncCanvasToCode, useSyncCodeToCanvas } from '../lib/sync'
 
 // ── Mermaid language (defined at module scope — never inside component) ──────
 
@@ -69,6 +70,7 @@ const mermaidTheme = EditorView.theme({
 export default function CodePanel(): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+  const syncCodeToCanvasRef = useRef<((update: ViewUpdate) => void) | null>(null)
   const [cursor, setCursor] = useState({ line: 1, col: 1 })
 
   const nodes = useStore(s => s.nodes)
@@ -76,6 +78,8 @@ export default function CodePanel(): React.JSX.Element {
   const code = useMemo(() => serialize({ nodes, edges }), [nodes, edges])
 
   useSyncCanvasToCode(viewRef, code)
+  const onSyncUpdate = useSyncCodeToCanvas()
+  syncCodeToCanvasRef.current = onSyncUpdate
 
   // Mount editor once
   useEffect(() => {
@@ -85,7 +89,6 @@ export default function CodePanel(): React.JSX.Element {
       state: EditorState.create({
         doc: code,
         extensions: [
-          EditorView.editable.of(false),
           mermaidTheme,
           lineNumbers(),
           highlightActiveLine(),
@@ -98,6 +101,7 @@ export default function CodePanel(): React.JSX.Element {
               const line = update.state.doc.lineAt(head)
               setCursor({ line: line.number, col: head - line.from + 1 })
             }
+            if (update.docChanged) syncCodeToCanvasRef.current?.(update)
           }),
         ],
       }),

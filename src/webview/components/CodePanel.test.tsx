@@ -61,9 +61,11 @@ vi.mock('../lib/serializer', () => ({
 
 vi.mock('../lib/sync', () => ({
   useSyncCanvasToCode: vi.fn(),
+  useSyncCodeToCanvas: vi.fn(() => vi.fn()),
 }))
 
 import CodePanel from './CodePanel'
+import { useSyncCodeToCanvas } from '../lib/sync'
 
 describe('CodePanel', () => {
   afterEach(() => {
@@ -123,10 +125,16 @@ describe('CodePanel', () => {
     expect(codeArg).toBe('graph TD\n  A[Test]')
   })
 
-  it('EditorView.editable.of(false) is included in extensions (read-only)', async () => {
+  it('editor is not read-only (EditorView.editable.of not called with false)', async () => {
     const { EditorView } = await import('@codemirror/view')
     render(<CodePanel />)
-    expect(EditorView.editable.of).toHaveBeenCalledWith(false)
+    const calls = vi.mocked(EditorView.editable.of).mock.calls
+    expect(calls.every(([arg]) => arg !== false)).toBe(true)
+  })
+
+  it('calls useSyncCodeToCanvas on render', () => {
+    render(<CodePanel />)
+    expect(vi.mocked(useSyncCodeToCanvas)).toHaveBeenCalled()
   })
 
   it('CodePanel is a default export (required for React.lazy)', () => {

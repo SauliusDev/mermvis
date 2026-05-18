@@ -42,6 +42,7 @@ function CanvasFlow(): React.JSX.Element {
   )
   const addNode = useStore(s => s.addNode)
   const addSubgraph = useStore(s => s.addSubgraph)
+  const setSyncDirection = useStore(s => s.setSyncDirection)
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
@@ -85,6 +86,10 @@ function CanvasFlow(): React.JSX.Element {
     addEdge(connection as { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null })
   }
 
+  function handleNodeDragStart(): void {
+    setSyncDirection('canvas')
+  }
+
   function handleNodeDrag(
     _event: React.MouseEvent,
     draggedNode: Node<FlowNodeData>,
@@ -124,6 +129,7 @@ function CanvasFlow(): React.JSX.Element {
       }
     }
     if (toMove.length > 0) moveNodes(toMove)
+    useStore.getState().setSyncDirection(null)
   }
 
   function handleNodesChange(changes: NodeChange[]): void {
@@ -223,6 +229,7 @@ function CanvasFlow(): React.JSX.Element {
         edgeTypes={edgeTypes}
         onNodesChange={handleNodesChange}
         onConnect={handleConnect}
+        onNodeDragStart={handleNodeDragStart}
         onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClick}

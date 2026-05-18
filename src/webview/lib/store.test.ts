@@ -924,4 +924,79 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBe(historyBefore)
     })
   })
+
+  describe('importFromCode', () => {
+    function makeParsedNode(id: string, label = id) {
+      return {
+        id,
+        type: 'flowNode' as const,
+        position: { x: 0, y: 0 },
+        data: { label, shape: 'rectangle' as const },
+      }
+    }
+
+    it('adds new nodes from parsed result', () => {
+      useStore.setState({ nodes: [], edges: [], history: { past: [], future: [] } })
+      useStore.getState().importFromCode({
+        nodes: [makeParsedNode('A'), makeParsedNode('B')],
+        edges: [],
+        passthroughLines: [],
+      })
+      expect(useStore.getState().nodes).toHaveLength(2)
+    })
+
+    it('preserves positions of existing nodes by ID', () => {
+      const existing = makeNode('A', { position: { x: 100, y: 200 } })
+      useStore.setState({ nodes: [existing], edges: [], history: { past: [], future: [] } })
+      useStore.getState().importFromCode({
+        nodes: [makeParsedNode('A')],
+        edges: [],
+        passthroughLines: [],
+      })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 100, y: 200 })
+    })
+
+    it('preserves fill/stroke/textColor of existing nodes', () => {
+      const existing = makeNode('A', {
+        data: { label: 'A', shape: 'rectangle', fillColor: '#111', strokeColor: '#222', textColor: '#333' },
+      })
+      useStore.setState({ nodes: [existing], edges: [], history: { past: [], future: [] } })
+      useStore.getState().importFromCode({
+        nodes: [makeParsedNode('A')],
+        edges: [],
+        passthroughLines: [],
+      })
+      const updated = useStore.getState().nodes[0]
+      expect(updated.data.fillColor).toBe('#111')
+      expect(updated.data.strokeColor).toBe('#222')
+      expect(updated.data.textColor).toBe('#333')
+    })
+
+    it('replaces edges with parsed edges', () => {
+      useStore.setState({
+        nodes: [makeNode('A'), makeNode('B')],
+        edges: [makeEdge('e-old', 'A', 'B')],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().importFromCode({
+        nodes: [makeParsedNode('A'), makeParsedNode('B')],
+        edges: [{ id: 'e-new', source: 'A', target: 'B', type: 'default', data: { style: 'arrow' as const } }],
+        passthroughLines: [],
+      })
+      expect(useStore.getState().edges).toHaveLength(1)
+      expect(useStore.getState().edges[0].id).toBe('e-new')
+    })
+
+    it('is a no-op when nodes and edges are semantically unchanged — no history entry', () => {
+      const existing = makeNode('A', { data: { label: 'A', shape: 'rectangle' } })
+      useStore.setState({ nodes: [existing], edges: [], history: { past: [], future: [] } })
+      const before = useStore.getState().history.past.length
+      useStore.getState().importFromCode({
+        nodes: [makeParsedNode('A', 'A')],
+        edges: [],
+        passthroughLines: [],
+      })
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
 })

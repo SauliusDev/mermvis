@@ -7,6 +7,7 @@ vi.mock('zustand')
 // Module-level captured props (accessible from tests)
 let capturedSnapToGrid: boolean | undefined
 let capturedSnapGrid: [number, number] | undefined
+let capturedOnNodeDragStart: ((...args: unknown[]) => void) | undefined
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
 let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
 let capturedOnConnect: ((connection: unknown) => void) | undefined
@@ -19,6 +20,7 @@ vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
     snapToGrid?: boolean
     snapGrid?: [number, number]
+    onNodeDragStart?: (...args: unknown[]) => void
     onNodeDragStop?: (...args: unknown[]) => void
     onNodesDelete?: (...args: unknown[]) => void
     onConnect?: (connection: unknown) => void
@@ -30,6 +32,7 @@ vi.mock('@xyflow/react', () => ({
   }) => {
     capturedSnapToGrid = props.snapToGrid
     capturedSnapGrid = props.snapGrid
+    capturedOnNodeDragStart = props.onNodeDragStart
     capturedOnNodeDragStop = props.onNodeDragStop
     _capturedOnNodesDelete = props.onNodesDelete
     capturedOnConnect = props.onConnect
@@ -64,6 +67,7 @@ describe('Canvas', () => {
   beforeEach(() => {
     capturedSnapToGrid = undefined
     capturedSnapGrid = undefined
+    capturedOnNodeDragStart = undefined
     capturedOnNodeDragStop = undefined
     _capturedOnNodesDelete = undefined
     capturedOnConnect = undefined
@@ -360,5 +364,25 @@ describe('Canvas', () => {
       })
     })
     expect(mockAddSubgraph).toHaveBeenCalled()
+  })
+
+  it('sets syncDirection to "canvas" on node drag start', () => {
+    const mockSetSyncDirection = vi.fn()
+    useStore.setState({ setSyncDirection: mockSetSyncDirection } as never)
+    render(<Canvas />)
+    act(() => {
+      capturedOnNodeDragStart?.({}, {}, [])
+    })
+    expect(mockSetSyncDirection).toHaveBeenCalledWith('canvas')
+  })
+
+  it('clears syncDirection to null on node drag stop', () => {
+    const node = makeNode('n1', { position: { x: 10, y: 10 } })
+    useStore.setState({ nodes: [node], edges: [], setSyncDirection: vi.fn() } as never)
+    render(<Canvas />)
+    act(() => {
+      capturedOnNodeDragStop?.({}, node, [node])
+    })
+    expect(useStore.getState().syncDirection).toBeNull()
   })
 })

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import type { Node, Edge, XYPosition } from '@xyflow/react'
+import type { ParseSuccess } from './parser'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ interface StoreState {
   updateNodeColors: (id: string, colors: { fillColor?: string; strokeColor?: string; textColor?: string }) => void
   undo: () => void
   redo: () => void
+  importFromCode: (result: ParseSuccess) => void
 }
 
 // withHistory is called imperatively inside each store action.
@@ -432,6 +434,53 @@ export const useStore = create<StoreState>()((set, get) => ({
         future: state.history.future.slice(1),
       },
     }))
+  },
+
+  importFromCode: (result) => {
+    const { nodes, edges } = get()
+    const currentNodeMap = new Map(nodes.map(n => [n.id, n]))
+
+    const mergedNodes = result.nodes.map(parsedNode => {
+      const current = currentNodeMap.get(parsedNode.id)
+      if (!current) return parsedNode
+      return {
+        ...parsedNode,
+        position: current.position,
+        selected: current.selected,
+        data: {
+          ...parsedNode.data,
+          fillColor: current.data.fillColor,
+          strokeColor: current.data.strokeColor,
+          textColor: current.data.textColor,
+        },
+      }
+    })
+
+    const isNoOp =
+      mergedNodes.length === nodes.length &&
+      result.edges.length === edges.length &&
+      mergedNodes.every(n => {
+        const c = currentNodeMap.get(n.id)
+        return (
+          c !== undefined &&
+          c.data.label === n.data.label &&
+          c.data.shape === n.data.shape &&
+          c.parentId === n.parentId
+        )
+      }) &&
+      result.edges.every(e =>
+        edges.some(
+          o =>
+            o.source === e.source &&
+            o.target === e.target &&
+            o.data?.label === e.data?.label &&
+            o.data?.style === e.data?.style
+        )
+      )
+
+    if (isNoOp) return
+
+    withHistory(get, set, { nodes: mergedNodes, edges: result.edges })
   },
 }))
 
