@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { EditorView, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { StreamLanguage, HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { useStore } from '../lib/store'
 import { serialize } from '../lib/serializer'
+import { useSyncCanvasToCode } from '../lib/sync'
 
 // ── Mermaid language (defined at module scope — never inside component) ──────
 
@@ -74,6 +75,8 @@ export default function CodePanel(): React.JSX.Element {
   const edges = useStore(s => s.edges)
   const code = useMemo(() => serialize({ nodes, edges }), [nodes, edges])
 
+  useSyncCanvasToCode(viewRef, code)
+
   // Mount editor once
   useEffect(() => {
     if (!containerRef.current) return
@@ -104,15 +107,6 @@ export default function CodePanel(): React.JSX.Element {
     viewRef.current = view
     return () => { view.destroy() }
   }, [])
-
-  // Sync content when store changes
-  useEffect(() => {
-    const view = viewRef.current
-    if (!view) return
-    const current = view.state.doc.toString()
-    if (current === code) return
-    view.dispatch({ changes: { from: 0, to: current.length, insert: code } })
-  }, [code])
 
   return (
     <div className="code-panel">

@@ -59,6 +59,10 @@ vi.mock('../lib/serializer', () => ({
   serialize: vi.fn().mockReturnValue('graph TD\n  A[Test]'),
 }))
 
+vi.mock('../lib/sync', () => ({
+  useSyncCanvasToCode: vi.fn(),
+}))
+
 import CodePanel from './CodePanel'
 
 describe('CodePanel', () => {
@@ -110,39 +114,13 @@ describe('CodePanel', () => {
     expect(destroy).toHaveBeenCalledTimes(1)
   })
 
-  it('dispatches content update when serialized code changes', async () => {
-    const { EditorView } = await import('@codemirror/view')
-    const { serialize } = await import('../lib/serializer')
-
-    const mockDispatch = vi.fn()
-    vi.mocked(EditorView).mockImplementationOnce(() => ({
-      dispatch: mockDispatch,
-      destroy: vi.fn(),
-      state: { doc: { toString: () => 'old content' }, selection: { main: { head: 0 } } },
-    }) as never)
-    vi.mocked(serialize).mockReturnValueOnce('new content')
-
+  it('calls useSyncCanvasToCode with the view ref and serialized code', async () => {
+    const { useSyncCanvasToCode } = await import('../lib/sync')
     render(<CodePanel />)
-    expect(mockDispatch).toHaveBeenCalledWith({
-      changes: { from: 0, to: 'old content'.length, insert: 'new content' },
-    })
-  })
-
-  it('does not dispatch when content is unchanged', async () => {
-    const { EditorView } = await import('@codemirror/view')
-    const { serialize } = await import('../lib/serializer')
-
-    const mockDispatch = vi.fn()
-    const sameContent = 'graph TD\n  A[Test]'
-    vi.mocked(EditorView).mockImplementationOnce(() => ({
-      dispatch: mockDispatch,
-      destroy: vi.fn(),
-      state: { doc: { toString: () => sameContent }, selection: { main: { head: 0 } } },
-    }) as never)
-    vi.mocked(serialize).mockReturnValue(sameContent)
-
-    render(<CodePanel />)
-    expect(mockDispatch).not.toHaveBeenCalled()
+    expect(vi.mocked(useSyncCanvasToCode)).toHaveBeenCalled()
+    const [refArg, codeArg] = vi.mocked(useSyncCanvasToCode).mock.calls[0]
+    expect(refArg).toHaveProperty('current')
+    expect(codeArg).toBe('graph TD\n  A[Test]')
   })
 
   it('EditorView.editable.of(false) is included in extensions (read-only)', async () => {

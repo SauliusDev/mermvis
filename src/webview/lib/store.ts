@@ -4,6 +4,8 @@ import type { Node, Edge, XYPosition } from '@xyflow/react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+export type SyncDirection = 'canvas' | 'code' | null
+
 export type NodeShape =
   | 'rectangle'   // [label]     — Mermaid default rectangle
   | 'rounded'     // (label)     — rounded rectangle
@@ -56,6 +58,8 @@ interface StoreState {
   }
   filename: string
   setFilename: (filename: string) => void
+  syncDirection: SyncDirection
+  setSyncDirection: (dir: SyncDirection) => void
   pendingConnect: { sourceId: string } | null
   addNode: (node: Node<FlowNodeData>) => void
   addSubgraph: () => void
@@ -122,6 +126,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   history: { past: [], future: [] },
   filename: 'untitled.mmd',
   setFilename: (filename) => set({ filename }),
+  syncDirection: null,
+  setSyncDirection: (dir) => set(s => ({ ...s, syncDirection: dir })),
   pendingConnect: null,
 
   addNode: (node) => {

@@ -911,4 +911,17 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBe(before)
     })
   })
+
+  describe('setSyncDirection', () => {
+    it('sets syncDirection to "canvas"', () => {
+      useStore.getState().setSyncDirection('canvas')
+      expect(useStore.getState().syncDirection).toBe('canvas')
+    })
+
+    it('does not create a history entry', () => {
+      const historyBefore = useStore.getState().history.past.length
+      useStore.getState().setSyncDirection('canvas')
+      expect(useStore.getState().history.past.length).toBe(historyBefore)
+    })
+  })
 })
