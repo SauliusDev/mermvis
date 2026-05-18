@@ -22,7 +22,7 @@ const edgeTypes = { default: FlowEdge }
 const VALID_PALETTE_SHAPES = new Set<string>(['rectangle', 'rounded', 'pill', 'diamond', 'circle', 'hexagon', 'cylinder', 'subgraph'])
 
 function CanvasFlow(): React.JSX.Element {
-  const { screenToFlowPosition, setViewport: rfSetViewport, fitView } = useReactFlow()
+  const { screenToFlowPosition, setViewport: rfSetViewport, fitView, zoomIn, zoomOut, zoomTo } = useReactFlow()
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
   const applyFlowChanges = useStore(s => s.applyFlowChanges)
@@ -227,10 +227,34 @@ function CanvasFlow(): React.JSX.Element {
           removeEdges(selectedEdgeIds)
         }
       }
+      // Zoom shortcuts — blocked when an editable element has focus
+      if (e.ctrlKey) {
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable) return
+        if (e.key === '0' && !e.shiftKey) {
+          e.preventDefault()
+          zoomTo(1, { duration: 200 })
+          return
+        }
+        if ((e.key === '=' || e.key === '+') && !e.shiftKey) {
+          e.preventDefault()
+          zoomIn({ duration: 200 })
+          return
+        }
+        if (e.key === '-' && !e.shiftKey) {
+          e.preventDefault()
+          zoomOut({ duration: 200 })
+          return
+        }
+        if (e.key === 'F' && e.shiftKey) {
+          e.preventDefault()
+          fitView({ padding: 0.1, duration: 200 })
+          return
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deselectAll, removeNodes, removeEdges, setPendingConnect])
+  }, [deselectAll, removeNodes, removeEdges, setPendingConnect, zoomIn, zoomOut, zoomTo, fitView])
 
   return (
     <div
@@ -257,9 +281,11 @@ function CanvasFlow(): React.JSX.Element {
         snapGrid={[GRID_SNAP, GRID_SNAP] as [number, number]}
         colorMode="dark"
         multiSelectionKeyCode="Shift"
-        selectionOnDrag={true}
-        panOnDrag={false}
+        selectionOnDrag={false}
+        panOnDrag={true}
         panOnScroll={true}
+        minZoom={0.1}
+        maxZoom={4}
         selectionMode={SelectionMode.Partial}
       >
         <Background

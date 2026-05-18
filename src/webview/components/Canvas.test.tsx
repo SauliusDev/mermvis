@@ -4,9 +4,18 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 
 vi.mock('zustand')
 
+const mockZoomIn = vi.fn()
+const mockZoomOut = vi.fn()
+const mockZoomTo = vi.fn()
+const mockFitView = vi.fn()
+
 // Module-level captured props (accessible from tests)
 let capturedSnapToGrid: boolean | undefined
 let capturedSnapGrid: [number, number] | undefined
+let capturedPanOnDrag: boolean | undefined
+let capturedSelectionOnDrag: boolean | undefined
+let capturedMinZoom: number | undefined
+let capturedMaxZoom: number | undefined
 let capturedOnNodeDragStart: ((...args: unknown[]) => void) | undefined
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined
 let _capturedOnNodesDelete: ((...args: unknown[]) => void) | undefined
@@ -20,6 +29,10 @@ vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: {
     snapToGrid?: boolean
     snapGrid?: [number, number]
+    panOnDrag?: boolean
+    selectionOnDrag?: boolean
+    minZoom?: number
+    maxZoom?: number
     onNodeDragStart?: (...args: unknown[]) => void
     onNodeDragStop?: (...args: unknown[]) => void
     onNodesDelete?: (...args: unknown[]) => void
@@ -32,6 +45,10 @@ vi.mock('@xyflow/react', () => ({
   }) => {
     capturedSnapToGrid = props.snapToGrid
     capturedSnapGrid = props.snapGrid
+    capturedPanOnDrag = props.panOnDrag
+    capturedSelectionOnDrag = props.selectionOnDrag
+    capturedMinZoom = props.minZoom
+    capturedMaxZoom = props.maxZoom
     capturedOnNodeDragStart = props.onNodeDragStart
     capturedOnNodeDragStop = props.onNodeDragStop
     _capturedOnNodesDelete = props.onNodesDelete
@@ -51,6 +68,11 @@ vi.mock('@xyflow/react', () => ({
     React.createElement(React.Fragment, null, children),
   useReactFlow: vi.fn(() => ({
     screenToFlowPosition: vi.fn((pos: { x: number; y: number }) => pos),
+    setViewport: vi.fn(),
+    fitView: mockFitView,
+    zoomIn: mockZoomIn,
+    zoomOut: mockZoomOut,
+    zoomTo: mockZoomTo,
   })),
 }))
 
@@ -67,6 +89,10 @@ describe('Canvas', () => {
   beforeEach(() => {
     capturedSnapToGrid = undefined
     capturedSnapGrid = undefined
+    capturedPanOnDrag = undefined
+    capturedSelectionOnDrag = undefined
+    capturedMinZoom = undefined
+    capturedMaxZoom = undefined
     capturedOnNodeDragStart = undefined
     capturedOnNodeDragStop = undefined
     _capturedOnNodesDelete = undefined
@@ -75,6 +101,10 @@ describe('Canvas', () => {
     capturedEdges = undefined
     capturedOnNodeClick = undefined
     capturedOnPaneClick = undefined
+    mockZoomIn.mockClear()
+    mockZoomOut.mockClear()
+    mockZoomTo.mockClear()
+    mockFitView.mockClear()
   })
 
   it('renders canvas-container div', () => {
@@ -384,5 +414,95 @@ describe('Canvas', () => {
       capturedOnNodeDragStop?.({}, node, [node])
     })
     expect(useStore.getState().syncDirection).toBeNull()
+  })
+
+  it('passes panOnDrag=true to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedPanOnDrag).toBe(true)
+  })
+
+  it('passes selectionOnDrag=false to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedSelectionOnDrag).toBe(false)
+  })
+
+  it('passes minZoom=0.1 to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedMinZoom).toBe(0.1)
+  })
+
+  it('passes maxZoom=4 to ReactFlow', () => {
+    render(<Canvas />)
+    expect(capturedMaxZoom).toBe(4)
+  })
+
+  it('Ctrl+0 zooms canvas to 100%', () => {
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: '0', ctrlKey: true })
+    })
+    expect(mockZoomTo).toHaveBeenCalledWith(1, { duration: 200 })
+  })
+
+  it('Ctrl+= zooms in', () => {
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: '=', ctrlKey: true })
+    })
+    expect(mockZoomIn).toHaveBeenCalledWith({ duration: 200 })
+  })
+
+  it('Ctrl+- zooms out', () => {
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: '-', ctrlKey: true })
+    })
+    expect(mockZoomOut).toHaveBeenCalledWith({ duration: 200 })
+  })
+
+  it('Ctrl+Shift+F fits view with padding', () => {
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: 'F', ctrlKey: true, shiftKey: true })
+    })
+    expect(mockFitView).toHaveBeenCalledWith({ padding: 0.1, duration: 200 })
+  })
+
+  it('Ctrl++ zooms in', () => {
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: '+', ctrlKey: true })
+    })
+    expect(mockZoomIn).toHaveBeenCalledWith({ duration: 200 })
+  })
+
+  it('zoom shortcuts are blocked when input has focus', () => {
+    render(<Canvas />)
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    try {
+      input.focus()
+      act(() => {
+        fireEvent.keyDown(window, { key: '=', ctrlKey: true })
+      })
+      expect(mockZoomIn).not.toHaveBeenCalled()
+    } finally {
+      document.body.removeChild(input)
+    }
+  })
+
+  it('zoom shortcuts are blocked when textarea has focus', () => {
+    render(<Canvas />)
+    const textarea = document.createElement('textarea')
+    document.body.appendChild(textarea)
+    try {
+      textarea.focus()
+      act(() => {
+        fireEvent.keyDown(window, { key: '=', ctrlKey: true })
+      })
+      expect(mockZoomIn).not.toHaveBeenCalled()
+    } finally {
+      document.body.removeChild(textarea)
+    }
   })
 })
