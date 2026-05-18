@@ -15,14 +15,16 @@ export default function CanvasSidebar(): React.JSX.Element {
   const edges = useStore(s => s.edges)
   const past = useStore(s => s.history.past)
   const future = useStore(s => s.history.future)
+  const inspectorOpen = useStore(s => s.inspectorOpen)
 
-  const { addSubgraph, moveNodes, undo, redo, deselectAll } = useStore(
+  const { addSubgraph, moveNodes, undo, redo, deselectAll, toggleInspector } = useStore(
     useShallow(s => ({
       addSubgraph: s.addSubgraph,
       moveNodes: s.moveNodes,
       undo: s.undo,
       redo: s.redo,
       deselectAll: s.deselectAll,
+      toggleInspector: s.toggleInspector,
     }))
   )
 
@@ -91,6 +93,16 @@ export default function CanvasSidebar(): React.JSX.Element {
         </button>
         <button className="canvas-sidebar__btn" aria-label="Zoom to Fit" onClick={handleZoomToFit}>
           ⤢
+        </button>
+        <div className="canvas-sidebar__divider" aria-hidden="true" />
+        <button
+          className={`canvas-sidebar__btn${inspectorOpen ? ' canvas-sidebar__btn--active' : ''}`}
+          aria-label="Toggle Inspector"
+          aria-expanded={inspectorOpen}
+          aria-controls="inspector-panel"
+          onClick={toggleInspector}
+        >
+          ⊟
         </button>
       </div>
       {paletteOpen && (

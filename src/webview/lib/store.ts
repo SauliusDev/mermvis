@@ -94,6 +94,8 @@ interface StoreState {
   setViewport: (vp: { x: number; y: number; zoom: number }) => void
   requestViewportRestore: (vp: { x: number; y: number; zoom: number }) => void
   clearViewportRestore: () => void
+  inspectorOpen: boolean
+  toggleInspector: () => void
   undo: () => void
   redo: () => void
   importFromCode: (result: ParseSuccess) => void
@@ -152,6 +154,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   setViewport: (vp) => set(s => ({ ...s, viewport: vp })),
   requestViewportRestore: (vp) => set(s => ({ ...s, viewportToRestore: vp })),
   clearViewportRestore: () => set(s => ({ ...s, viewportToRestore: null })),
+  inspectorOpen: false,
+  toggleInspector: () => set(s => ({ ...s, inspectorOpen: !s.inspectorOpen })),
 
   addNode: (node) => {
     const { nodes, edges } = get()

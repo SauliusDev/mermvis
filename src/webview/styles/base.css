@@ -69,6 +69,7 @@ body {
   display: flex;
   overflow: hidden;
   min-height: 0; /* required: prevents flex children from overflowing */
+  position: relative;
 }
 
 .app__panel {

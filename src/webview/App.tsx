@@ -8,6 +8,7 @@ import { applyDagreLayout } from './lib/layout'
 import Canvas from './components/Canvas'
 import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
+import Inspector from './components/Inspector'
 import type { PanelId, PanelVisible } from './components/TopBar'
 import '@xyflow/react/dist/style.css'
 import './styles/variables.css'
@@ -22,6 +23,7 @@ import './styles/components/subgraph.css'
 import './styles/components/palette.css'
 import './styles/components/node-toolbar.css'
 import './styles/components/node-color-picker.css'
+import './styles/components/inspector.css'
 
 const CodePanel = React.lazy(() => import('./components/CodePanel'))
 const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
@@ -172,6 +174,7 @@ export default function App(): React.JSX.Element {
             </React.Suspense>
           }
         />
+        <Inspector />
       </main>
     </div>
   )

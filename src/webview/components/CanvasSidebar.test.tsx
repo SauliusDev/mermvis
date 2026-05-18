@@ -149,9 +149,28 @@ describe('CanvasSidebar', () => {
     expect(useStore.getState().nodes).toHaveLength(1)
   })
 
-  it('renders two dividers in the sidebar', () => {
+  it('renders three dividers in the sidebar', () => {
     const { container } = render(<CanvasSidebar />)
     const dividers = container.querySelectorAll('.canvas-sidebar__divider')
-    expect(dividers).toHaveLength(2)
+    expect(dividers).toHaveLength(3)
+  })
+
+  it('Inspector button is rendered in sidebar', () => {
+    render(<CanvasSidebar />)
+    expect(screen.getByRole('button', { name: 'Toggle Inspector' })).toBeTruthy()
+  })
+
+  it('Inspector button click calls toggleInspector', () => {
+    render(<CanvasSidebar />)
+    expect(useStore.getState().inspectorOpen).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle Inspector' }))
+    expect(useStore.getState().inspectorOpen).toBe(true)
+  })
+
+  it('Inspector button has canvas-sidebar__btn--active class when inspectorOpen is true', () => {
+    useStore.setState({ inspectorOpen: true })
+    render(<CanvasSidebar />)
+    const btn = screen.getByRole('button', { name: 'Toggle Inspector' })
+    expect(btn.classList.contains('canvas-sidebar__btn--active')).toBe(true)
   })
 })
