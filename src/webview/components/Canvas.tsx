@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useCallback, useState } from 'react'
 import {
   ReactFlow, Background, BackgroundVariant, applyNodeChanges, SelectionMode, ConnectionMode,
-  ReactFlowProvider, useReactFlow,
+  ReactFlowProvider, useReactFlow, MiniMap,
 } from '@xyflow/react'
 import type { NodeChange, Node, Connection, NodeMouseHandler, XYPosition } from '@xyflow/react'
 import { useStore, useShallow, GRID_SNAP } from '@/lib/store'
@@ -11,6 +11,7 @@ import FlowNode from '@/components/FlowNode'
 import SubgraphNode from '@/components/SubgraphNode'
 import FlowEdge from '@/components/FlowEdge'
 import CanvasSidebar from '@/components/CanvasSidebar'
+import ZoomBar from '@/components/ZoomBar'
 import { computeDimmedNodeIds, computeConnectedEdgeIds } from '@/lib/selection'
 
 // CRITICAL: nodeTypes must be at module scope — never inside the component.
@@ -48,6 +49,8 @@ function CanvasFlow(): React.JSX.Element {
   const addNode = useStore(s => s.addNode)
   const addSubgraph = useStore(s => s.addSubgraph)
   const setSyncDirection = useStore(s => s.setSyncDirection)
+  const minimapOpen = useStore(s => s.minimapOpen)
+  const isLocked = useStore(s => s.isLocked)
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
@@ -227,6 +230,8 @@ function CanvasFlow(): React.JSX.Element {
           removeEdges(selectedEdgeIds)
         }
       }
+      // Block zoom keyboard shortcuts when canvas is locked
+      if (useStore.getState().isLocked) return
       // Zoom shortcuts — blocked when an editable element has focus
       if (e.ctrlKey) {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable) return
@@ -263,6 +268,7 @@ function CanvasFlow(): React.JSX.Element {
       onDrop={handleCanvasDrop}
     >
       <CanvasSidebar />
+      <ZoomBar />
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -282,8 +288,10 @@ function CanvasFlow(): React.JSX.Element {
         colorMode="dark"
         multiSelectionKeyCode="Shift"
         selectionOnDrag={false}
-        panOnDrag={true}
-        panOnScroll={true}
+        panOnDrag={!isLocked}
+        panOnScroll={!isLocked}
+        zoomOnScroll={!isLocked}
+        zoomOnPinch={!isLocked}
         minZoom={0.1}
         maxZoom={4}
         selectionMode={SelectionMode.Partial}
@@ -294,6 +302,7 @@ function CanvasFlow(): React.JSX.Element {
           size={1}
           color="rgba(255,255,255,0.055)"
         />
+        {minimapOpen && <MiniMap />}
       </ReactFlow>
     </div>
   )

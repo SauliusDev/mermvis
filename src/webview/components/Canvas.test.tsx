@@ -13,6 +13,9 @@ const mockFitView = vi.fn()
 let capturedSnapToGrid: boolean | undefined
 let capturedSnapGrid: [number, number] | undefined
 let capturedPanOnDrag: boolean | undefined
+let capturedPanOnScroll: boolean | undefined
+let capturedZoomOnScroll: boolean | undefined
+let capturedZoomOnPinch: boolean | undefined
 let capturedSelectionOnDrag: boolean | undefined
 let capturedMinZoom: number | undefined
 let capturedMaxZoom: number | undefined
@@ -30,6 +33,9 @@ vi.mock('@xyflow/react', () => ({
     snapToGrid?: boolean
     snapGrid?: [number, number]
     panOnDrag?: boolean
+    panOnScroll?: boolean
+    zoomOnScroll?: boolean
+    zoomOnPinch?: boolean
     selectionOnDrag?: boolean
     minZoom?: number
     maxZoom?: number
@@ -46,6 +52,9 @@ vi.mock('@xyflow/react', () => ({
     capturedSnapToGrid = props.snapToGrid
     capturedSnapGrid = props.snapGrid
     capturedPanOnDrag = props.panOnDrag
+    capturedPanOnScroll = props.panOnScroll
+    capturedZoomOnScroll = props.zoomOnScroll
+    capturedZoomOnPinch = props.zoomOnPinch
     capturedSelectionOnDrag = props.selectionOnDrag
     capturedMinZoom = props.minZoom
     capturedMaxZoom = props.maxZoom
@@ -60,6 +69,8 @@ vi.mock('@xyflow/react', () => ({
     return React.createElement('div', { 'data-testid': 'react-flow-mock' }, props.children)
   },
   Background: () => React.createElement('div', { 'data-testid': 'rf-background-mock' }),
+  MiniMap: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement('div', { 'data-testid': 'react-flow-minimap' }, children),
   BackgroundVariant: { Dots: 'dots', Lines: 'lines', Cross: 'cross' },
   SelectionMode: { Partial: 'partial', Full: 'full' },
   ConnectionMode: { Loose: 'loose', Strict: 'strict' },
@@ -90,6 +101,9 @@ describe('Canvas', () => {
     capturedSnapToGrid = undefined
     capturedSnapGrid = undefined
     capturedPanOnDrag = undefined
+    capturedPanOnScroll = undefined
+    capturedZoomOnScroll = undefined
+    capturedZoomOnPinch = undefined
     capturedSelectionOnDrag = undefined
     capturedMinZoom = undefined
     capturedMaxZoom = undefined
@@ -105,6 +119,7 @@ describe('Canvas', () => {
     mockZoomOut.mockClear()
     mockZoomTo.mockClear()
     mockFitView.mockClear()
+    useStore.setState({ isLocked: false, minimapOpen: false })
   })
 
   it('renders canvas-container div', () => {
@@ -504,5 +519,74 @@ describe('Canvas', () => {
     } finally {
       document.body.removeChild(textarea)
     }
+  })
+
+  it('panOnDrag=true when not locked', () => {
+    useStore.setState({ isLocked: false })
+    render(<Canvas />)
+    expect(capturedPanOnDrag).toBe(true)
+  })
+
+  it('panOnDrag=false when isLocked=true', () => {
+    useStore.setState({ isLocked: true })
+    render(<Canvas />)
+    expect(capturedPanOnDrag).toBe(false)
+  })
+
+  it('panOnScroll=true when not locked', () => {
+    useStore.setState({ isLocked: false })
+    render(<Canvas />)
+    expect(capturedPanOnScroll).toBe(true)
+  })
+
+  it('panOnScroll=false when isLocked=true', () => {
+    useStore.setState({ isLocked: true })
+    render(<Canvas />)
+    expect(capturedPanOnScroll).toBe(false)
+  })
+
+  it('MiniMap renders when minimapOpen=true', () => {
+    useStore.setState({ minimapOpen: true })
+    render(<Canvas />)
+    expect(screen.getByTestId('react-flow-minimap')).toBeTruthy()
+  })
+
+  it('MiniMap not rendered when minimapOpen=false', () => {
+    useStore.setState({ minimapOpen: false })
+    render(<Canvas />)
+    expect(screen.queryByTestId('react-flow-minimap')).toBeNull()
+  })
+
+  it('zoom shortcuts are blocked when canvas is locked', () => {
+    useStore.setState({ isLocked: true })
+    render(<Canvas />)
+    act(() => {
+      fireEvent.keyDown(window, { key: '=', ctrlKey: true })
+    })
+    expect(mockZoomIn).not.toHaveBeenCalled()
+  })
+
+  it('zoomOnScroll=true when not locked', () => {
+    useStore.setState({ isLocked: false })
+    render(<Canvas />)
+    expect(capturedZoomOnScroll).toBe(true)
+  })
+
+  it('zoomOnScroll=false when isLocked=true', () => {
+    useStore.setState({ isLocked: true })
+    render(<Canvas />)
+    expect(capturedZoomOnScroll).toBe(false)
+  })
+
+  it('zoomOnPinch=true when not locked', () => {
+    useStore.setState({ isLocked: false })
+    render(<Canvas />)
+    expect(capturedZoomOnPinch).toBe(true)
+  })
+
+  it('zoomOnPinch=false when isLocked=true', () => {
+    useStore.setState({ isLocked: true })
+    render(<Canvas />)
+    expect(capturedZoomOnPinch).toBe(false)
   })
 })

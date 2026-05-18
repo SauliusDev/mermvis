@@ -24,6 +24,7 @@ import './styles/components/palette.css'
 import './styles/components/node-toolbar.css'
 import './styles/components/node-color-picker.css'
 import './styles/components/inspector.css'
+import './styles/components/zoom-bar.css'
 
 const CodePanel = React.lazy(() => import('./components/CodePanel'))
 const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))

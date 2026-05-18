@@ -98,6 +98,10 @@ interface StoreState {
   clearViewportRestore: () => void
   inspectorOpen: boolean
   toggleInspector: () => void
+  minimapOpen: boolean
+  toggleMinimap: () => void
+  isLocked: boolean
+  toggleLock: () => void
   undo: () => void
   redo: () => void
   importFromCode: (result: ParseSuccess) => void
@@ -158,6 +162,10 @@ export const useStore = create<StoreState>()((set, get) => ({
   clearViewportRestore: () => set(s => ({ ...s, viewportToRestore: null })),
   inspectorOpen: false,
   toggleInspector: () => set(s => ({ ...s, inspectorOpen: !s.inspectorOpen })),
+  minimapOpen: false,
+  toggleMinimap: () => set(s => ({ ...s, minimapOpen: !s.minimapOpen })),
+  isLocked: false,
+  toggleLock: () => set(s => ({ ...s, isLocked: !s.isLocked })),
 
   addNode: (node) => {
     const { nodes, edges } = get()
