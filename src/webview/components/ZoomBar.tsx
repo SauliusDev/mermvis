@@ -30,7 +30,7 @@ export default function ZoomBar(): React.JSX.Element {
       <div className="zoom-bar__divider" aria-hidden="true" />
       <button
         className="zoom-bar__btn"
-        aria-label="Fit to view"
+        aria-label="Fit all nodes in viewport"
         onClick={() => fitView({ padding: 0.1, duration: 200 })}
       >⤢</button>
       <div className="zoom-bar__divider" aria-hidden="true" />
@@ -38,14 +38,14 @@ export default function ZoomBar(): React.JSX.Element {
         className={`zoom-bar__btn zoom-bar__btn--toggle${minimapOpen ? ' zoom-bar__btn--active' : ''}`}
         role="switch"
         aria-checked={minimapOpen}
-        aria-label="Toggle minimap"
+        aria-label={minimapOpen ? 'Hide minimap' : 'Show minimap'}
         onClick={toggleMinimap}
       >⊞</button>
       <button
         className={`zoom-bar__btn zoom-bar__btn--toggle${isLocked ? ' zoom-bar__btn--active' : ''}`}
         role="switch"
         aria-checked={isLocked}
-        aria-label="Toggle lock"
+        aria-label={isLocked ? 'Unlock canvas' : 'Lock canvas'}
         onClick={toggleLock}
       >⊘</button>
     </div>

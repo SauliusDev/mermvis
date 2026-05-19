@@ -88,7 +88,7 @@ export default function CanvasSidebar(): React.JSX.Element {
           ↪
         </button>
         <div className="canvas-sidebar__divider" aria-hidden="true" />
-        <button className="canvas-sidebar__btn" aria-label="Auto Layout" onClick={handleAutoLayout}>
+        <button className="canvas-sidebar__btn" aria-label="Apply auto-layout" onClick={handleAutoLayout}>
           ⬡
         </button>
         <button className="canvas-sidebar__btn" aria-label="Zoom to Fit" onClick={handleZoomToFit}>

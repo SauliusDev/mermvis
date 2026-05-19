@@ -60,7 +60,7 @@ describe('CanvasSidebar', () => {
 
   it('renders button with aria-label="Auto Layout"', () => {
     render(<CanvasSidebar />)
-    expect(screen.getByRole('button', { name: 'Auto Layout' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Apply auto-layout' })).toBeTruthy()
   })
 
   it('renders button with aria-label="Zoom to Fit"', () => {
@@ -136,7 +136,7 @@ describe('CanvasSidebar', () => {
   it('clicking auto-layout button calls fitView() when nodes exist', () => {
     render(<CanvasSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Add Subgraph' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Auto Layout' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apply auto-layout' }))
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.1 })
   })
 

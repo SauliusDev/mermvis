@@ -59,25 +59,25 @@ export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): Re
       <div className="topbar__actions">
         <button
           className="topbar__btn"
-          aria-label="Export .mmd"
-          title="Export .mmd"
+          aria-label="Export as .mmd file"
+          title="Export as .mmd file"
           onClick={handleExportFile}
         >⬇</button>
         <button
           className="topbar__btn"
-          aria-label="Copy syntax"
-          title="Copy syntax to clipboard"
+          aria-label="Copy Mermaid syntax to clipboard"
+          title="Copy Mermaid syntax to clipboard"
           onClick={handleCopyClipboard}
         >⎘</button>
         <button
           className="topbar__btn"
-          aria-label="Save as JSON"
+          aria-label="Save canvas as JSON"
           title="Save canvas as JSON"
           onClick={handleSaveJson}
         >↓</button>
         <button
           className="topbar__btn"
-          aria-label="Load JSON"
+          aria-label="Load canvas from JSON"
           title="Load canvas from JSON"
           onClick={handleLoadJson}
         >↑</button>

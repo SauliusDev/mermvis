@@ -256,14 +256,17 @@ function CanvasFlow(): React.JSX.Element {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
       const activeTag = (document.activeElement as HTMLElement)?.tagName
+      const isEditableActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA'
+        || !!(document.activeElement as HTMLElement)?.isContentEditable
+
       if (e.key === 'Escape') {
-        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+        if (!isEditableActive) {
           deselectAll()
           setPendingConnect(null)
         }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return
+        if (isEditableActive) return
         const selectedNodeIds = useStore.getState().nodes
           .filter(n => n.selected)
           .map(n => n.id)
@@ -277,11 +280,74 @@ function CanvasFlow(): React.JSX.Element {
           removeEdges(selectedEdgeIds)
         }
       }
-      // Block zoom keyboard shortcuts when canvas is locked
+
+      // Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        if (isEditableActive) return
+        e.preventDefault()
+        useStore.getState().undo()
+        return
+      }
+
+      // Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        if (isEditableActive) return
+        e.preventDefault()
+        useStore.getState().redo()
+        return
+      }
+
+      // Select all
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        if (isEditableActive) return
+        e.preventDefault()
+        useStore.getState().selectAll()
+        return
+      }
+
+      // Duplicate selected nodes
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        if (isEditableActive) return
+        e.preventDefault()
+        const selectedIds = useStore.getState().nodes
+          .filter(n => n.selected)
+          .map(n => n.id)
+        if (selectedIds.length > 0) {
+          useStore.getState().duplicateNodes(selectedIds)
+        }
+        return
+      }
+
+      // Block zoom + arrow nudge when canvas is locked
       if (useStore.getState().isLocked) return
-      // Zoom shortcuts — blocked when an editable element has focus
+
+      // Arrow key nudge — moves selected top-level non-subgraph nodes by GRID_SNAP
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+          && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (isEditableActive) return
+        const nudgeable = useStore.getState().nodes
+          .filter(n => n.selected && !n.parentId && !n.data.isSubgraph)
+        if (nudgeable.length === 0) return
+        e.preventDefault()
+        const deltas: Record<string, { x: number; y: number }> = {
+          ArrowUp:    { x: 0,          y: -GRID_SNAP },
+          ArrowDown:  { x: 0,          y:  GRID_SNAP },
+          ArrowLeft:  { x: -GRID_SNAP, y: 0 },
+          ArrowRight: { x:  GRID_SNAP, y: 0 },
+        }
+        const delta = deltas[e.key]
+        useStore.getState().moveNodes(
+          nudgeable.map(n => ({
+            id: n.id,
+            position: { x: n.position.x + delta.x, y: n.position.y + delta.y },
+          }))
+        )
+        return
+      }
+
+      // Zoom shortcuts
       if (e.ctrlKey) {
-        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable) return
+        if (isEditableActive) return
         if (e.key === '0' && !e.shiftKey) {
           e.preventDefault()
           zoomTo(1, { duration: 200 })

@@ -1123,4 +1123,131 @@ describe('useStore', () => {
       expect(useStore.getState().history.past.length).toBe(before)
     })
   })
+
+  describe('keyboard shortcut actions', () => {
+    it('selectAll sets selected: true on all nodes including subgraph nodes', () => {
+      useStore.setState({
+        nodes: [makeNode('a'), makeNode('b', { data: { label: 'b', shape: 'subgraph', isSubgraph: true } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().selectAll()
+      expect(useStore.getState().nodes.every(n => n.selected)).toBe(true)
+    })
+
+    it('selectAll does not create a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      const before = useStore.getState().history.past.length
+      useStore.getState().selectAll()
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+
+    it('duplicateNodes creates copies with new IDs at +48px offset', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { position: { x: 100, y: 200 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNodes(['a'])
+      const { nodes } = useStore.getState()
+      expect(nodes).toHaveLength(2)
+      const copy = nodes.find(n => n.id !== 'a')!
+      expect(copy.position).toEqual({ x: 148, y: 248 })
+    })
+
+    it('duplicateNodes skips nodes with parentId', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { parentId: 'sg1' })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNodes(['a'])
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('duplicateNodes skips subgraph nodes (data.isSubgraph: true)', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { data: { label: 'Group', shape: 'subgraph', isSubgraph: true } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNodes(['a'])
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().history.past).toHaveLength(0)
+    })
+
+    it('duplicateNodes selects copies and deselects originals', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      useStore.getState().duplicateNodes(['a'])
+      const { nodes } = useStore.getState()
+      const original = nodes.find(n => n.id === 'a')!
+      const copy = nodes.find(n => n.id !== 'a')!
+      expect(original.selected).toBe(false)
+      expect(copy.selected).toBe(true)
+    })
+
+    it('duplicateNodes creates a history entry', () => {
+      useStore.setState({ nodes: [makeNode('a')], edges: [], history: { past: [], future: [] } })
+      const before = useStore.getState().history.past.length
+      useStore.getState().duplicateNodes(['a'])
+      expect(useStore.getState().history.past.length).toBe(before + 1)
+    })
+
+    it('duplicateNodes is a no-op when no eligible nodes', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { parentId: 'sg1' })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      const before = useStore.getState().history.past.length
+      useStore.getState().duplicateNodes(['a'])
+      expect(useStore.getState().history.past.length).toBe(before)
+      expect(useStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('announce sets announcement string', () => {
+      useStore.getState().announce('test message')
+      expect(useStore.getState().announcement).toBe('test message')
+    })
+
+    it('clearAnnouncement sets announcement to null', () => {
+      useStore.getState().announce('hello')
+      useStore.getState().clearAnnouncement()
+      expect(useStore.getState().announcement).toBeNull()
+    })
+
+    it('addNode sets announcement to "Node added"', () => {
+      useStore.getState().addNode(makeNode('a'))
+      expect(useStore.getState().announcement).toBe('Node added')
+    })
+
+    it('removeNodes sets announcement with correct deletion count', () => {
+      useStore.setState({ nodes: [makeNode('a'), makeNode('b')], edges: [], history: { past: [], future: [] } })
+      useStore.getState().removeNodes(['a', 'b'])
+      expect(useStore.getState().announcement).toBe('Deleted 2 nodes')
+    })
+
+    it('undo sets announcement to "Undo"', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      expect(useStore.getState().announcement).toBe('Undo')
+    })
+
+    it('redo sets announcement to "Redo"', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      useStore.getState().redo()
+      expect(useStore.getState().announcement).toBe('Redo')
+    })
+
+    it('undo is silent (no announcement) when nothing to undo', () => {
+      useStore.getState().undo()
+      expect(useStore.getState().announcement).toBeNull()
+    })
+  })
 })

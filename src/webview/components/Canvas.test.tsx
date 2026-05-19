@@ -590,6 +590,192 @@ describe('Canvas', () => {
     expect(capturedZoomOnPinch).toBe(false)
   })
 
+  describe('keyboard shortcuts', () => {
+    function pressKey(key: string, opts: Partial<KeyboardEventInit> = {}): void {
+      fireEvent.keyDown(window, { key, ...opts })
+    }
+
+    it('Ctrl+Z triggers undo', () => {
+      useStore.getState().addNode(makeNode('a'))
+      render(<Canvas />)
+      act(() => { pressKey('z', { ctrlKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(0)
+    })
+
+    it('Cmd+Z triggers undo', () => {
+      useStore.getState().addNode(makeNode('a'))
+      render(<Canvas />)
+      act(() => { pressKey('z', { metaKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(0)
+    })
+
+    it('Ctrl+Z does NOT trigger undo when contentEditable focused', () => {
+      useStore.getState().addNode(makeNode('a'))
+      render(<Canvas />)
+      // jsdom doesn't fully implement isContentEditable; patch activeElement directly
+      const fakeEl = { tagName: 'DIV', isContentEditable: true } as HTMLElement
+      const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'activeElement')!
+      Object.defineProperty(document, 'activeElement', { get: () => fakeEl, configurable: true })
+      try {
+        act(() => { pressKey('z', { ctrlKey: true }) })
+        expect(useStore.getState().nodes).toHaveLength(1)
+      } finally {
+        Object.defineProperty(document, 'activeElement', descriptor)
+      }
+    })
+
+    it('Ctrl+Y triggers redo', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      render(<Canvas />)
+      act(() => { pressKey('y', { ctrlKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('Ctrl+Shift+Z triggers redo', () => {
+      useStore.getState().addNode(makeNode('a'))
+      useStore.getState().undo()
+      render(<Canvas />)
+      act(() => { pressKey('z', { ctrlKey: true, shiftKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('Ctrl+A calls selectAll', () => {
+      useStore.setState({
+        nodes: [makeNode('a'), makeNode('b')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('a', { ctrlKey: true }) })
+      expect(useStore.getState().nodes.every(n => n.selected)).toBe(true)
+    })
+
+    it('Ctrl+A is blocked when input has focus', () => {
+      useStore.setState({
+        nodes: [makeNode('a')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      const input = document.createElement('input')
+      document.body.appendChild(input)
+      try {
+        input.focus()
+        act(() => { pressKey('a', { ctrlKey: true }) })
+        expect(useStore.getState().nodes[0].selected).toBeFalsy()
+      } finally {
+        document.body.removeChild(input)
+      }
+    })
+
+    it('Ctrl+D duplicates selected nodes', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('d', { ctrlKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(2)
+      const copy = useStore.getState().nodes.find(n => n.id !== 'a')!
+      expect(copy.position).toEqual({ x: 48, y: 48 })
+    })
+
+    it('Ctrl+D is no-op when nothing selected', () => {
+      useStore.setState({
+        nodes: [makeNode('a')],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      const before = useStore.getState().history.past.length
+      act(() => { pressKey('d', { ctrlKey: true }) })
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+
+    it('ArrowUp nudges selected node by -24px on Y', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowUp') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 0, y: -24 })
+    })
+
+    it('ArrowDown nudges +24px on Y', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowDown') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 0, y: 24 })
+    })
+
+    it('ArrowLeft nudges -24px on X', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowLeft') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: -24, y: 0 })
+    })
+
+    it('ArrowRight nudges +24px on X', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowRight') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 24, y: 0 })
+    })
+
+    it('Arrow nudge is blocked when isLocked is true', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 } })],
+        edges: [],
+        isLocked: true,
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowUp') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 0, y: 0 })
+    })
+
+    it('Arrow nudge skips nodes with parentId', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { selected: true, position: { x: 0, y: 0 }, parentId: 'sg1' })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      act(() => { pressKey('ArrowUp') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 0, y: 0 })
+    })
+
+    it('Arrow nudge is no-op when no nodes selected', () => {
+      useStore.setState({
+        nodes: [makeNode('a', { position: { x: 0, y: 0 } })],
+        edges: [],
+        history: { past: [], future: [] },
+      })
+      render(<Canvas />)
+      const before = useStore.getState().history.past.length
+      act(() => { pressKey('ArrowUp') })
+      expect(useStore.getState().nodes[0].position).toEqual({ x: 0, y: 0 })
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
+
   describe('pendingAddNode signal handling', () => {
     it('adds a node with the requested shape when pendingAddNode is set', () => {
       render(<Canvas />)

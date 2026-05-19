@@ -122,7 +122,7 @@ describe('NodeToolbar', () => {
   it('clicking Change shape opens shape dropdown', () => {
     render(<NodeToolbar {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: 'Change shape' }))
-    expect(screen.getByRole('button', { name: 'Rectangle' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Change shape to Rectangle' })).not.toBeNull()
   })
 
   it('shape dropdown shows all 8 shape options', () => {
@@ -130,16 +130,16 @@ describe('NodeToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Change shape' }))
     const shapeLabels = ['Rectangle', 'Rounded', 'Pill', 'Diamond', 'Circle', 'Hexagon', 'Cylinder', 'Subgraph']
     shapeLabels.forEach(label => {
-      expect(screen.getByRole('button', { name: label })).not.toBeNull()
+      expect(screen.getByRole('button', { name: `Change shape to ${label}` })).not.toBeNull()
     })
   })
 
   it('selecting a shape from dropdown calls updateNodeShape and closes dropdown', () => {
     render(<NodeToolbar {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: 'Change shape' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Diamond' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change shape to Diamond' }))
     expect(mockUpdateNodeShape).toHaveBeenCalledWith(TEST_NODE_ID, 'diamond')
-    expect(screen.queryByRole('button', { name: 'Diamond' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change shape to Diamond' })).toBeNull()
   })
 
   it('Escape key in shape dropdown closes dropdown', () => {
@@ -147,7 +147,7 @@ describe('NodeToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Change shape' }))
     const dropdown = document.querySelector('.node-toolbar__shape-dropdown')!
     fireEvent.keyDown(dropdown, { key: 'Escape' })
-    expect(screen.queryByRole('button', { name: 'Rectangle' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change shape to Rectangle' })).toBeNull()
   })
 
   it('delete button has danger CSS class', () => {

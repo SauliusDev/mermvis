@@ -100,7 +100,7 @@ export default function NodeToolbar({ isVisible, nodeId, shape, positionAbsolute
                 <button
                   key={s}
                   className={`node-toolbar__shape-option${s === shape ? ' node-toolbar__shape-option--active' : ''}`}
-                  aria-label={label}
+                  aria-label={`Change shape to ${label}`}
                   title={label}
                   onClick={() => handleShapeSelect(s)}
                 >

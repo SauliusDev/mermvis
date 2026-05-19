@@ -66,7 +66,7 @@ describe('ZoomBar', () => {
 
   it('clicking fit to view calls fitView with padding and duration', () => {
     render(<ZoomBar />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fit to view' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Fit all nodes in viewport' }))
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.1, duration: 200 })
   })
 

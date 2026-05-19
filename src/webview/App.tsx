@@ -11,6 +11,7 @@ import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
 import Inspector from './components/Inspector'
 import CommandPalette from './components/CommandPalette'
+import LiveRegion from './components/LiveRegion'
 import type { PanelId, PanelVisible } from './components/TopBar'
 import '@xyflow/react/dist/style.css'
 import './styles/variables.css'
@@ -50,12 +51,13 @@ export default function App(): React.JSX.Element {
   })
 
   const handleTogglePanel = useCallback((panel: PanelId): void => {
-    setPanelVisible(prev => {
-      const next: PanelVisible = { ...prev, [panel]: !prev[panel] }
-      const anyActive = (Object.keys(next) as PanelId[]).some(k => next[k])
-      return anyActive ? next : prev
-    })
-  }, [])
+    const next: PanelVisible = { ...panelVisible, [panel]: !panelVisible[panel] }
+    const anyActive = (Object.keys(next) as PanelId[]).some(k => next[k])
+    if (!anyActive) return
+    const label = panel.charAt(0).toUpperCase() + panel.slice(1)
+    useStore.getState().announce(`${label} panel ${next[panel] ? 'shown' : 'hidden'}`)
+    setPanelVisible(next)
+  }, [panelVisible])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -189,6 +191,7 @@ export default function App(): React.JSX.Element {
         />
         <Inspector />
         <CommandPalette onTogglePanel={handleTogglePanel} />
+        <LiveRegion />
       </main>
     </div>
   )

@@ -75,6 +75,7 @@ interface StoreState {
   removeNodes: (ids: string[]) => void
   applyFlowChanges: (nodes: Node<FlowNodeData>[]) => void
   deselectAll: () => void
+  selectAll: () => void
   updateNodeLabel: (id: string, label: string) => void
   moveNodes: (updates: Array<{ id: string; position: XYPosition }>) => void
   resizeNode: (id: string, dimensions: { width: number; height: number }, position?: XYPosition) => void
@@ -89,6 +90,7 @@ interface StoreState {
   spawnConnectedNode: (sourceId: string, position: { x: number; y: number }) => void
   updateNodeShape: (id: string, shape: NodeShape) => void
   duplicateNode: (id: string) => void
+  duplicateNodes: (ids: string[]) => void
   toggleNodeLock: (id: string) => void
   updateNodeColors: (id: string, colors: { fillColor?: string; strokeColor?: string; textColor?: string }) => void
   toggleNodeHandDrawn: (id: string) => void
@@ -106,6 +108,9 @@ interface StoreState {
   commandPaletteOpen: boolean
   openCommandPalette: () => void
   closeCommandPalette: () => void
+  announcement: string | null
+  announce: (text: string) => void
+  clearAnnouncement: () => void
   pendingAddNode: { shape: NodeShape } | null
   requestAddNode: (shape: NodeShape) => void
   clearPendingAddNode: () => void
@@ -180,6 +185,9 @@ export const useStore = create<StoreState>()((set, get) => ({
   commandPaletteOpen: false,
   openCommandPalette: () => set({ commandPaletteOpen: true }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
+  announcement: null,
+  announce: (text) => set({ announcement: text }),
+  clearAnnouncement: () => set({ announcement: null }),
   pendingAddNode: null,
   requestAddNode: (shape) => set({ pendingAddNode: { shape } }),
   clearPendingAddNode: () => set({ pendingAddNode: null }),
@@ -191,6 +199,7 @@ export const useStore = create<StoreState>()((set, get) => ({
     const { nodes, edges } = get()
     // addNode is never a no-op — always appends
     withHistory(get, set, { nodes: [...nodes, node], edges })
+    set({ announcement: 'Node added' })
   },
 
   addSubgraph: () => {
@@ -205,6 +214,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       data: { label: 'Group', shape: 'subgraph', isSubgraph: true },
     }
     withHistory(get, set, { nodes: [...nodes, newNode], edges })
+    set({ announcement: 'Node added' })
   },
 
   removeNodes: (ids) => {
@@ -234,6 +244,7 @@ export const useStore = create<StoreState>()((set, get) => ({
 
     const nextEdges = edges.filter(e => !idSet.has(e.source) && !idSet.has(e.target))
     withHistory(get, set, { nodes: result, edges: nextEdges })
+    set({ announcement: `Deleted ${ids.length} node${ids.length > 1 ? 's' : ''}` })
   },
 
   removeNode: (id) => {
@@ -318,6 +329,9 @@ export const useStore = create<StoreState>()((set, get) => ({
       nodes: state.nodes.map(n => n.selected ? { ...n, selected: false } : n),
     }))
   },
+
+  selectAll: () =>
+    set({ nodes: get().nodes.map(n => ({ ...n, selected: true })) }),
 
   moveNodes: (updates) => {
     const { nodes, edges } = get()
@@ -438,6 +452,27 @@ export const useStore = create<StoreState>()((set, get) => ({
     withHistory(get, set, { nodes: [...nextNodes, newNode], edges })
   },
 
+  duplicateNodes: (ids) => {
+    const current = get()
+    const eligible = current.nodes.filter(
+      n => ids.includes(n.id) && !n.data.isSubgraph && !n.parentId
+    )
+    if (eligible.length === 0) return
+    const offset = GRID_SNAP * 2
+    const copies = eligible.map(n => ({
+      ...n,
+      id: crypto.randomUUID(),
+      position: { x: n.position.x + offset, y: n.position.y + offset },
+      selected: true,
+    }))
+    const eligibleIds = new Set(eligible.map(e => e.id))
+    const updated = current.nodes.map(n =>
+      eligibleIds.has(n.id) ? { ...n, selected: false } : n
+    )
+    withHistory(get, set, { nodes: [...updated, ...copies], edges: current.edges })
+    set({ announcement: `Duplicated ${eligible.length} node${eligible.length > 1 ? 's' : ''}` })
+  },
+
   toggleNodeLock: (id) => {
     const { nodes, edges } = get()
     const node = nodes.find(n => n.id === id)
@@ -485,6 +520,7 @@ export const useStore = create<StoreState>()((set, get) => ({
         past: state.history.past.slice(0, -1),
         future: [{ nodes: state.nodes, edges: state.edges }, ...state.history.future],
       },
+      announcement: 'Undo',
     }))
   },
 
@@ -500,6 +536,7 @@ export const useStore = create<StoreState>()((set, get) => ({
         past: [...state.history.past, { nodes: state.nodes, edges: state.edges }],
         future: state.history.future.slice(1),
       },
+      announcement: 'Redo',
     }))
   },
 

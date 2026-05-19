@@ -130,29 +130,29 @@ describe('TopBar', () => {
 
   it('renders Export .mmd button', () => {
     render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: 'Export .mmd' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Export as .mmd file' })).not.toBeNull()
   })
 
   it('renders Copy syntax button', () => {
     render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: 'Copy syntax' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Copy Mermaid syntax to clipboard' })).not.toBeNull()
   })
 
   it('Export .mmd button is not disabled', () => {
     render(<TopBar {...defaultProps} />)
-    const btn = screen.getByRole('button', { name: 'Export .mmd' }) as HTMLButtonElement
+    const btn = screen.getByRole('button', { name: 'Export as .mmd file' }) as HTMLButtonElement
     expect(btn.disabled).toBe(false)
   })
 
   it('Copy syntax button is not disabled', () => {
     render(<TopBar {...defaultProps} />)
-    const btn = screen.getByRole('button', { name: 'Copy syntax' }) as HTMLButtonElement
+    const btn = screen.getByRole('button', { name: 'Copy Mermaid syntax to clipboard' }) as HTMLButtonElement
     expect(btn.disabled).toBe(false)
   })
 
   it('clicking Export .mmd calls sendToHost with file subtype', () => {
     render(<TopBar {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Export .mmd' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Export as .mmd file' }))
     expect(mockSendToHost).toHaveBeenCalledWith({
       type: 'EXPORT',
       payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'file' },
@@ -161,7 +161,7 @@ describe('TopBar', () => {
 
   it('clicking Copy syntax calls sendToHost with clipboard subtype', () => {
     render(<TopBar {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Copy syntax' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Mermaid syntax to clipboard' }))
     expect(mockSendToHost).toHaveBeenCalledWith({
       type: 'EXPORT',
       payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'clipboard' },
@@ -170,17 +170,17 @@ describe('TopBar', () => {
 
   it('renders Save as JSON button', () => {
     render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: 'Save as JSON' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Save canvas as JSON' })).not.toBeNull()
   })
 
   it('renders Load JSON button', () => {
     render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: 'Load JSON' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Load canvas from JSON' })).not.toBeNull()
   })
 
   it('clicking Save as JSON calls sendToHost with EXPORT format json', () => {
     render(<TopBar {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Save as JSON' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save canvas as JSON' }))
     expect(mockSendToHost).toHaveBeenCalledWith({
       type: 'EXPORT',
       payload: { content: expect.any(String), format: 'json', subtype: 'file' },
@@ -189,7 +189,7 @@ describe('TopBar', () => {
 
   it('clicking Load JSON calls sendToHost with IMPORT_JSON type', () => {
     render(<TopBar {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Load JSON' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load canvas from JSON' }))
     expect(mockSendToHost).toHaveBeenCalledWith({ type: 'IMPORT_JSON', payload: {} })
   })
 })
