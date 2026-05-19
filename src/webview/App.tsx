@@ -10,6 +10,7 @@ import Canvas from './components/Canvas'
 import PanelLayout from './components/PanelLayout'
 import TopBar from './components/TopBar'
 import Inspector from './components/Inspector'
+import CommandPalette from './components/CommandPalette'
 import type { PanelId, PanelVisible } from './components/TopBar'
 import '@xyflow/react/dist/style.css'
 import './styles/variables.css'
@@ -26,6 +27,7 @@ import './styles/components/node-toolbar.css'
 import './styles/components/node-color-picker.css'
 import './styles/components/inspector.css'
 import './styles/components/zoom-bar.css'
+import './styles/components/command-palette.css'
 
 const CodePanel = React.lazy(() => import('./components/CodePanel'))
 const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
@@ -186,6 +188,7 @@ export default function App(): React.JSX.Element {
           }
         />
         <Inspector />
+        <CommandPalette onTogglePanel={handleTogglePanel} />
       </main>
     </div>
   )

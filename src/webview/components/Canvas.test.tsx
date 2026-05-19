@@ -589,4 +589,52 @@ describe('Canvas', () => {
     render(<Canvas />)
     expect(capturedZoomOnPinch).toBe(false)
   })
+
+  describe('pendingAddNode signal handling', () => {
+    it('adds a node with the requested shape when pendingAddNode is set', () => {
+      render(<Canvas />)
+      act(() => {
+        useStore.getState().requestAddNode('rectangle')
+      })
+      const nodes = useStore.getState().nodes
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0].data.shape).toBe('rectangle')
+    })
+
+    it('calls addSubgraph for subgraph shape instead of addNode', () => {
+      const mockAddSubgraph = vi.fn()
+      useStore.setState({ addSubgraph: mockAddSubgraph } as never)
+      render(<Canvas />)
+      act(() => {
+        useStore.getState().requestAddNode('subgraph')
+      })
+      expect(mockAddSubgraph).toHaveBeenCalled()
+    })
+
+    it('clears pendingAddNode after handling', () => {
+      render(<Canvas />)
+      act(() => {
+        useStore.getState().requestAddNode('rectangle')
+      })
+      expect(useStore.getState().pendingAddNode).toBeNull()
+    })
+  })
+
+  describe('pendingZoomAction signal handling', () => {
+    it('"in" signal calls zoomIn from useReactFlow', () => {
+      render(<Canvas />)
+      act(() => {
+        useStore.getState().dispatchZoomAction('in')
+      })
+      expect(mockZoomIn).toHaveBeenCalledWith({ duration: 200 })
+    })
+
+    it('"fit" signal calls fitView from useReactFlow', () => {
+      render(<Canvas />)
+      act(() => {
+        useStore.getState().dispatchZoomAction('fit')
+      })
+      expect(mockFitView).toHaveBeenCalledWith({ padding: 0.1, duration: 200 })
+    })
+  })
 })

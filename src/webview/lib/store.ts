@@ -103,6 +103,15 @@ interface StoreState {
   toggleMinimap: () => void
   isLocked: boolean
   toggleLock: () => void
+  commandPaletteOpen: boolean
+  openCommandPalette: () => void
+  closeCommandPalette: () => void
+  pendingAddNode: { shape: NodeShape } | null
+  requestAddNode: (shape: NodeShape) => void
+  clearPendingAddNode: () => void
+  pendingZoomAction: 'in' | 'out' | 'reset' | 'fit' | null
+  dispatchZoomAction: (type: 'in' | 'out' | 'reset' | 'fit') => void
+  clearPendingZoomAction: () => void
   undo: () => void
   redo: () => void
   importFromCode: (result: ParseSuccess) => void
@@ -168,6 +177,15 @@ export const useStore = create<StoreState>()((set, get) => ({
   toggleMinimap: () => set(s => ({ ...s, minimapOpen: !s.minimapOpen })),
   isLocked: false,
   toggleLock: () => set(s => ({ ...s, isLocked: !s.isLocked })),
+  commandPaletteOpen: false,
+  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  closeCommandPalette: () => set({ commandPaletteOpen: false }),
+  pendingAddNode: null,
+  requestAddNode: (shape) => set({ pendingAddNode: { shape } }),
+  clearPendingAddNode: () => set({ pendingAddNode: null }),
+  pendingZoomAction: null,
+  dispatchZoomAction: (type) => set({ pendingZoomAction: type }),
+  clearPendingZoomAction: () => set({ pendingZoomAction: null }),
 
   addNode: (node) => {
     const { nodes, edges } = get()

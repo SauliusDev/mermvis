@@ -48,6 +48,10 @@ function CanvasFlow(): React.JSX.Element {
   )
   const addNode = useStore(s => s.addNode)
   const addSubgraph = useStore(s => s.addSubgraph)
+  const pendingAddNode = useStore(s => s.pendingAddNode)
+  const clearPendingAddNode = useStore(s => s.clearPendingAddNode)
+  const pendingZoomAction = useStore(s => s.pendingZoomAction)
+  const clearPendingZoomAction = useStore(s => s.clearPendingZoomAction)
   const setSyncDirection = useStore(s => s.setSyncDirection)
   const minimapOpen = useStore(s => s.minimapOpen)
   const isLocked = useStore(s => s.isLocked)
@@ -204,6 +208,49 @@ function CanvasFlow(): React.JSX.Element {
     clearFitViewRequest()
     fitView({ padding: 0.1, duration: 0 })
   }, [fitViewRequested, clearFitViewRequest, fitView])
+
+  // Flush any stale signals that accumulated while this component was unmounted (Canvas panel hidden)
+  useEffect(() => {
+    clearPendingAddNode()
+    clearPendingZoomAction()
+  }, [clearPendingAddNode, clearPendingZoomAction])
+
+  useEffect(() => {
+    if (!pendingAddNode) return
+    const { shape } = pendingAddNode
+    clearPendingAddNode()
+    const el = document.querySelector('.react-flow')
+    const rect = el?.getBoundingClientRect()
+    const screenCenter = rect
+      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+    const rawPos = screenToFlowPosition(screenCenter)
+    const position = {
+      x: Math.round(rawPos.x / GRID_SNAP) * GRID_SNAP,
+      y: Math.round(rawPos.y / GRID_SNAP) * GRID_SNAP,
+    }
+    if (shape === 'subgraph') {
+      addSubgraph()
+    } else {
+      addNode({
+        id: crypto.randomUUID(),
+        type: 'flowNode',
+        position,
+        data: { label: 'New Node', shape },
+      })
+    }
+  }, [pendingAddNode, clearPendingAddNode, screenToFlowPosition, addNode, addSubgraph])
+
+  useEffect(() => {
+    if (!pendingZoomAction) return
+    clearPendingZoomAction()
+    switch (pendingZoomAction) {
+      case 'in': zoomIn({ duration: 200 }); break
+      case 'out': zoomOut({ duration: 200 }); break
+      case 'reset': zoomTo(1, { duration: 200 }); break
+      case 'fit': fitView({ padding: 0.1, duration: 200 }); break
+    }
+  }, [pendingZoomAction, clearPendingZoomAction, zoomIn, zoomOut, zoomTo, fitView])
 
   // Escape key deselects all nodes and clears pendingConnect; Delete/Backspace removes selected nodes
   useEffect(() => {

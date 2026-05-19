@@ -1077,4 +1077,50 @@ describe('useStore', () => {
       expect(useStore.getState().viewportToRestore).toEqual(viewport)
     })
   })
+
+  describe('command palette transient state', () => {
+    it('commandPaletteOpen is false by default', () => {
+      expect(useStore.getState().commandPaletteOpen).toBe(false)
+    })
+
+    it('openCommandPalette sets commandPaletteOpen to true', () => {
+      useStore.getState().openCommandPalette()
+      expect(useStore.getState().commandPaletteOpen).toBe(true)
+    })
+
+    it('closeCommandPalette sets commandPaletteOpen to false', () => {
+      useStore.getState().openCommandPalette()
+      useStore.getState().closeCommandPalette()
+      expect(useStore.getState().commandPaletteOpen).toBe(false)
+    })
+
+    it('requestAddNode sets pendingAddNode with the given shape', () => {
+      useStore.getState().requestAddNode('diamond')
+      expect(useStore.getState().pendingAddNode).toEqual({ shape: 'diamond' })
+    })
+
+    it('clearPendingAddNode sets pendingAddNode to null', () => {
+      useStore.getState().requestAddNode('circle')
+      useStore.getState().clearPendingAddNode()
+      expect(useStore.getState().pendingAddNode).toBeNull()
+    })
+
+    it('dispatchZoomAction sets pendingZoomAction to the given type', () => {
+      useStore.getState().dispatchZoomAction('fit')
+      expect(useStore.getState().pendingZoomAction).toBe('fit')
+    })
+
+    it('clearPendingZoomAction sets pendingZoomAction to null', () => {
+      useStore.getState().dispatchZoomAction('in')
+      useStore.getState().clearPendingZoomAction()
+      expect(useStore.getState().pendingZoomAction).toBeNull()
+    })
+
+    it('openCommandPalette and closeCommandPalette do NOT create history entries', () => {
+      const before = useStore.getState().history.past.length
+      useStore.getState().openCommandPalette()
+      useStore.getState().closeCommandPalette()
+      expect(useStore.getState().history.past.length).toBe(before)
+    })
+  })
 })
