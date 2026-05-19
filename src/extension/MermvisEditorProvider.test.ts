@@ -348,6 +348,101 @@ describe('MermvisEditorProvider', () => {
     })
   })
 
+  describe('THEME_CHANGED', () => {
+    const fakeContext = {
+      subscriptions: [],
+      extensionUri: vscode.Uri.file('/fake/extension'),
+    } as unknown as vscode.ExtensionContext
+
+    const fakeDocument = {
+      uri: vscode.Uri.file('/test/diagram.mmd'),
+      getText: vi.fn(() => 'flowchart TD\n  A[Test]'),
+      lineCount: 2,
+    } as unknown as vscode.TextDocument
+
+    let capturedWebviewMessageHandler: ((msg: WebviewToHostMessage) => void) | undefined
+    let capturedColorThemeListener: ((e: { kind: number }) => void) | undefined
+    let postMessageSpy: ReturnType<typeof vi.fn>
+
+    beforeEach(() => {
+      capturedWebviewMessageHandler = undefined
+      capturedColorThemeListener = undefined
+
+      vi.mocked(vscode.workspace.onDidChangeTextDocument).mockImplementation(
+        () => ({ dispose: vi.fn() })
+      )
+
+      vi.mocked(vscode.window.onDidChangeActiveColorTheme).mockImplementation(
+        (listener: (e: { kind: number }) => void) => {
+          capturedColorThemeListener = listener
+          return { dispose: vi.fn() }
+        }
+      )
+
+      vi.mocked(vscode.workspace.applyEdit).mockResolvedValue(true as never)
+
+      vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+        get: vi.fn(() => true),
+      } as unknown as vscode.WorkspaceConfiguration)
+
+      postMessageSpy = vi.fn()
+
+      const fakePanel = {
+        webview: {
+          options: {},
+          html: '',
+          onDidReceiveMessage: vi.fn((cb: (msg: WebviewToHostMessage) => void) => {
+            capturedWebviewMessageHandler = cb
+            return { dispose: vi.fn() }
+          }),
+          postMessage: postMessageSpy,
+        },
+        onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+      }
+
+      const provider = new MermvisEditorProvider(fakeContext)
+      provider.resolveCustomTextEditor(
+        fakeDocument,
+        fakePanel as unknown as vscode.WebviewPanel,
+        { isCancellationRequested: false } as vscode.CancellationToken,
+      )
+    })
+
+    it('sends THEME_CHANGED with "dark" kind on READY when VSCode theme is Dark', () => {
+      // activeColorTheme.kind is Dark (2) by default in jest-mock-vscode
+      capturedWebviewMessageHandler!({ type: 'READY', payload: {} })
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'THEME_CHANGED', payload: { kind: 'dark' } })
+      )
+    })
+
+    it('sends THEME_CHANGED with "light" kind on READY when VSCode theme is Light', () => {
+      vi.mocked(vscode.window).activeColorTheme = { kind: vscode.ColorThemeKind.Light } as vscode.ColorTheme
+      capturedWebviewMessageHandler!({ type: 'READY', payload: {} })
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'THEME_CHANGED', payload: { kind: 'light' } })
+      )
+    })
+
+    it('sends THEME_CHANGED with "highContrast" for HighContrast theme on READY', () => {
+      vi.mocked(vscode.window).activeColorTheme = { kind: vscode.ColorThemeKind.HighContrast } as vscode.ColorTheme
+      capturedWebviewMessageHandler!({ type: 'READY', payload: {} })
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'THEME_CHANGED', payload: { kind: 'highContrast' } })
+      )
+    })
+
+    it('sends THEME_CHANGED when onDidChangeActiveColorTheme event fires', () => {
+      capturedWebviewMessageHandler!({ type: 'READY', payload: {} })
+      postMessageSpy.mockClear()
+      capturedColorThemeListener!({ kind: vscode.ColorThemeKind.Light })
+      expect(postMessageSpy).toHaveBeenCalledWith({
+        type: 'THEME_CHANGED',
+        payload: { kind: 'light' },
+      })
+    })
+  })
+
   describe('EXPORT json format', () => {
     const fakeContext = {
       subscriptions: [],

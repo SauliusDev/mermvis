@@ -18,6 +18,7 @@ import './styles/variables.css'
 import './styles/base.css'
 import './styles/components/panels.css'
 import './styles/themes/dark.css'
+import './styles/themes/adaptive.css'
 import './styles/components/topbar.css'
 import './styles/components/node.css'
 import './styles/components/edge.css'
@@ -33,6 +34,8 @@ import './styles/components/command-palette.css'
 const CodePanel = React.lazy(() => import('./components/CodePanel'))
 const PreviewPanel = React.lazy(() => import('./components/PreviewPanel'))
 
+type AppTheme = 'dark' | 'adaptive'
+
 export default function App(): React.JSX.Element {
   const setFilename = useStore(s => s.setFilename)
   const importFromCode = useStore(s => s.importFromCode)
@@ -40,6 +43,8 @@ export default function App(): React.JSX.Element {
   const requestFitView = useStore(s => s.requestFitView)
   const clearDirty = useStore(s => s.clearDirty)
   const [autoSave, setAutoSave] = useState(true)
+
+  const [appTheme, setAppTheme] = useState<AppTheme>('dark')
 
   useAutoSave(autoSave)
   useManualSave()
@@ -66,6 +71,14 @@ export default function App(): React.JSX.Element {
     }, 1500)
     return () => clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    if (appTheme === 'adaptive') {
+      document.documentElement.setAttribute('data-theme', 'vscode-adaptive')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+  }, [appTheme])
 
   useEffect(() => {
     sendToHost({ type: 'READY', payload: {} })
@@ -118,7 +131,8 @@ export default function App(): React.JSX.Element {
           break
         }
         case 'THEME_CHANGED':
-          // Story 12.3 — adaptive theme activation
+          // VSCode updates --vscode-* CSS variables in the webview DOM automatically.
+          // adaptive.css reads them live; no JS re-apply needed in v1.
           break
         case 'EXTERNAL_FILE_CHANGE': {
           const { isDirty } = useStore.getState()
@@ -173,7 +187,12 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <TopBar panelVisible={panelVisible} onTogglePanel={handleTogglePanel} />
+      <TopBar
+        panelVisible={panelVisible}
+        onTogglePanel={handleTogglePanel}
+        theme={appTheme}
+        onThemeChange={setAppTheme}
+      />
       <main className="app__main">
         <PanelLayout
           panelVisible={panelVisible}
@@ -190,7 +209,7 @@ export default function App(): React.JSX.Element {
           }
         />
         <Inspector />
-        <CommandPalette onTogglePanel={handleTogglePanel} />
+        <CommandPalette onTogglePanel={handleTogglePanel} onThemeChange={setAppTheme} />
         <LiveRegion />
       </main>
     </div>

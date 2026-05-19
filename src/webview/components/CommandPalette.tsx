@@ -28,9 +28,10 @@ interface PaletteAction {
 
 interface CommandPaletteProps {
   onTogglePanel: (id: PanelId) => void
+  onThemeChange: (theme: 'dark' | 'adaptive') => void
 }
 
-export default function CommandPalette({ onTogglePanel }: CommandPaletteProps): React.JSX.Element | null {
+export default function CommandPalette({ onTogglePanel, onThemeChange }: CommandPaletteProps): React.JSX.Element | null {
   const { commandPaletteOpen, closeCommandPalette, openCommandPalette } = useStore(
     useShallow(s => ({
       commandPaletteOpen: s.commandPaletteOpen,
@@ -183,8 +184,20 @@ export default function CommandPalette({ onTogglePanel }: CommandPaletteProps): 
         id: 'toggle-minimap', label: 'Toggle Minimap', category: 'View',
         execute: () => { close(); useStore.getState().toggleMinimap() },
       },
+      {
+        id: 'theme-dark',
+        label: 'Switch to Dark Theme',
+        category: 'View',
+        execute: () => { close(); onThemeChange('dark') },
+      },
+      {
+        id: 'theme-adaptive',
+        label: 'Switch to Adaptive Theme',
+        category: 'View',
+        execute: () => { close(); onThemeChange('adaptive') },
+      },
     ]
-  }, [onTogglePanel])
+  }, [onTogglePanel, onThemeChange])
 
   const filtered = useMemo(
     () => actions.filter(a => !a.disabled && fuzzyMatch(query, a.label)),

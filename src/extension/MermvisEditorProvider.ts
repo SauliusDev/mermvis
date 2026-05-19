@@ -27,6 +27,14 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
+  private _getThemeKind(kind: vscode.ColorThemeKind): 'dark' | 'light' | 'highContrast' {
+    switch (kind) {
+      case vscode.ColorThemeKind.Light: return 'light'
+      case vscode.ColorThemeKind.Dark:  return 'dark'
+      default:                          return 'highContrast'
+    }
+  }
+
   resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
@@ -81,6 +89,16 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
       })
     )
 
+    disposables.push(
+      vscode.window.onDidChangeActiveColorTheme(e => {
+        const msg: HostToWebviewMessage = {
+          type: 'THEME_CHANGED',
+          payload: { kind: this._getThemeKind(e.kind) },
+        }
+        webviewPanel.webview.postMessage(msg)
+      })
+    )
+
     webviewPanel.onDidDispose(() => disposables.forEach(d => d.dispose()))
   }
 
@@ -103,6 +121,11 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
           },
         }
         webviewPanel.webview.postMessage(loadMsg)
+        const themeMsg: HostToWebviewMessage = {
+          type: 'THEME_CHANGED',
+          payload: { kind: this._getThemeKind(vscode.window.activeColorTheme.kind) },
+        }
+        webviewPanel.webview.postMessage(themeMsg)
         break
       }
       case 'SAVE': {

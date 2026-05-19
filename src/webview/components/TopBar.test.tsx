@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 
 // vi.mock() MUST be at module top level — hoisted by Vitest before imports.
 vi.mock('zustand')
@@ -28,15 +28,19 @@ import TopBar from './TopBar'
 import type { PanelVisible } from './TopBar'
 
 const mockOnTogglePanel = vi.fn()
+const mockOnThemeChange = vi.fn()
 
 const defaultProps = {
   panelVisible: { canvas: true, code: false, preview: false } as PanelVisible,
   onTogglePanel: mockOnTogglePanel,
+  theme: 'dark' as const,
+  onThemeChange: mockOnThemeChange,
 }
 
 beforeEach(() => {
   useStore.setState({ filename: 'test-diagram.mmd' })
   mockOnTogglePanel.mockClear()
+  mockOnThemeChange.mockClear()
   mockSendToHost.mockClear()
   mockSerialize.mockClear()
   mockSerialize.mockReturnValue('flowchart LR\n  A-->B')
@@ -114,18 +118,18 @@ describe('TopBar', () => {
     expect(codeBtn.getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('renders theme picker and settings buttons', () => {
-    render(<TopBar {...defaultProps} />)
-    expect(screen.getByRole('button', { name: 'Theme picker' })).not.toBeNull()
+  it('renders theme picker button and settings button', () => {
+    render(<TopBar {...defaultProps} theme="dark" onThemeChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Theme: Dark/ })).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Settings' })).not.toBeNull()
   })
 
-  it('theme picker and settings buttons are disabled', () => {
-    render(<TopBar {...defaultProps} />)
-    const themeBtn = screen.getByRole('button', { name: 'Theme picker' })
-    const settingsBtn = screen.getByRole('button', { name: 'Settings' })
-    expect((themeBtn as HTMLButtonElement).disabled).toBe(true)
-    expect((settingsBtn as HTMLButtonElement).disabled).toBe(true)
+  it('theme picker button is enabled; settings button is still disabled', () => {
+    render(<TopBar {...defaultProps} theme="dark" onThemeChange={vi.fn()} />)
+    const themeBtn = screen.getByRole('button', { name: /Theme: Dark/ }) as HTMLButtonElement
+    const settingsBtn = screen.getByRole('button', { name: 'Settings' }) as HTMLButtonElement
+    expect(themeBtn.disabled).toBe(false)
+    expect(settingsBtn.disabled).toBe(true)
   })
 
   it('renders Export .mmd button', () => {
@@ -191,5 +195,76 @@ describe('TopBar', () => {
     render(<TopBar {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: 'Load canvas from JSON' }))
     expect(mockSendToHost).toHaveBeenCalledWith({ type: 'IMPORT_JSON', payload: {} })
+  })
+
+  describe('theme picker', () => {
+    it('renders with aria-label reflecting dark theme', () => {
+      render(<TopBar {...defaultProps} theme="dark" onThemeChange={vi.fn()} />)
+      const btn = screen.getByRole('button', { name: /Theme: Dark/ })
+      expect(btn).not.toBeNull()
+    })
+
+    it('renders with aria-label reflecting adaptive theme', () => {
+      render(<TopBar {...defaultProps} theme="adaptive" onThemeChange={vi.fn()} />)
+      const btn = screen.getByRole('button', { name: /Theme: Adaptive/ })
+      expect(btn).not.toBeNull()
+    })
+
+    it('clicking the theme button opens the dropdown (listbox visible)', () => {
+      render(<TopBar {...defaultProps} />)
+      const btn = screen.getByRole('button', { name: /Theme: Dark/ })
+      fireEvent.click(btn)
+      expect(screen.getByRole('listbox', { name: 'Select theme' })).not.toBeNull()
+    })
+
+    it('dropdown shows Dark and Adaptive options', () => {
+      render(<TopBar {...defaultProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Theme: Dark/ }))
+      expect(screen.getByText('◑ Dark')).not.toBeNull()
+      expect(screen.getByText('◑ Adaptive')).not.toBeNull()
+    })
+
+    it('clicking Adaptive option calls onThemeChange with "adaptive" and closes dropdown', () => {
+      const mockChange = vi.fn()
+      render(<TopBar {...defaultProps} onThemeChange={mockChange} />)
+      fireEvent.click(screen.getByRole('button', { name: /Theme: Dark/ }))
+      fireEvent.click(screen.getByText('◑ Adaptive'))
+      expect(mockChange).toHaveBeenCalledWith('adaptive')
+      expect(screen.queryByRole('listbox')).toBeNull()
+    })
+
+    it('clicking Dark option calls onThemeChange with "dark" and closes dropdown', () => {
+      const mockChange = vi.fn()
+      render(<TopBar {...defaultProps} theme="adaptive" onThemeChange={mockChange} />)
+      fireEvent.click(screen.getByRole('button', { name: /Theme: Adaptive/ }))
+      fireEvent.click(screen.getByText('◑ Dark'))
+      expect(mockChange).toHaveBeenCalledWith('dark')
+      expect(screen.queryByRole('listbox')).toBeNull()
+    })
+
+    it('mousedown outside the dropdown closes it', () => {
+      render(<TopBar {...defaultProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Theme: Dark/ }))
+      expect(screen.getByRole('listbox')).not.toBeNull()
+      act(() => {
+        fireEvent.mouseDown(document.body)
+      })
+      expect(screen.queryByRole('listbox')).toBeNull()
+    })
+
+    it('active option has aria-selected="true"', () => {
+      render(<TopBar {...defaultProps} theme="dark" onThemeChange={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Theme: Dark/ }))
+      const options = screen.getAllByRole('option')
+      const darkOption = options.find(o => o.textContent === '◑ Dark')
+      const adaptiveOption = options.find(o => o.textContent === '◑ Adaptive')
+      expect(darkOption?.getAttribute('aria-selected')).toBe('true')
+      expect(adaptiveOption?.getAttribute('aria-selected')).toBe('false')
+    })
+
+    it('dropdown is absent from DOM when closed', () => {
+      render(<TopBar {...defaultProps} />)
+      expect(screen.queryByRole('listbox')).toBeNull()
+    })
   })
 })

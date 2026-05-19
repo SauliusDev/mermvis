@@ -16,9 +16,10 @@ import { mockReactFlow } from '../setupTests'
 mockReactFlow()
 
 const mockTogglePanel = vi.fn()
+const mockOnThemeChange = vi.fn()
 
 function renderPalette(): ReturnType<typeof render> {
-  return render(<CommandPalette onTogglePanel={mockTogglePanel} />)
+  return render(<CommandPalette onTogglePanel={mockTogglePanel} onThemeChange={mockOnThemeChange} />)
 }
 
 function openPalette(): void {
@@ -30,6 +31,7 @@ function openPalette(): void {
 describe('CommandPalette', () => {
   beforeEach(() => {
     mockTogglePanel.mockClear()
+    mockOnThemeChange.mockClear()
     vi.mocked(sendToHost).mockClear()
   })
 
@@ -246,5 +248,39 @@ describe('CommandPalette', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('"Switch to Dark Theme" action appears in command list', () => {
+    renderPalette()
+    openPalette()
+    expect(screen.getByText('Switch to Dark Theme')).toBeTruthy()
+  })
+
+  it('"Switch to Adaptive Theme" action appears in command list', () => {
+    renderPalette()
+    openPalette()
+    expect(screen.getByText('Switch to Adaptive Theme')).toBeTruthy()
+  })
+
+  it('executing "Switch to Adaptive Theme" calls onThemeChange with "adaptive"', () => {
+    renderPalette()
+    openPalette()
+    const item = screen.getByText('Switch to Adaptive Theme')
+    act(() => {
+      fireEvent.mouseDown(item)
+    })
+    expect(mockOnThemeChange).toHaveBeenCalledWith('adaptive')
+    expect(useStore.getState().commandPaletteOpen).toBe(false)
+  })
+
+  it('executing "Switch to Dark Theme" calls onThemeChange with "dark"', () => {
+    renderPalette()
+    openPalette()
+    const item = screen.getByText('Switch to Dark Theme')
+    act(() => {
+      fireEvent.mouseDown(item)
+    })
+    expect(mockOnThemeChange).toHaveBeenCalledWith('dark')
+    expect(useStore.getState().commandPaletteOpen).toBe(false)
   })
 })

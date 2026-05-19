@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useStore } from '@/lib/store'
 import { sendToHost } from '@/vscode'
 import { serialize } from '@/lib/serializer'
@@ -10,10 +10,28 @@ export type PanelVisible = Record<PanelId, boolean>
 interface TopBarProps {
   panelVisible: PanelVisible
   onTogglePanel: (panel: PanelId) => void
+  theme: 'dark' | 'adaptive'
+  onThemeChange: (theme: 'dark' | 'adaptive') => void
 }
 
-export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): React.JSX.Element {
+export default function TopBar({ panelVisible, onTogglePanel, theme, onThemeChange }: TopBarProps): React.JSX.Element {
   const filename = useStore(s => s.filename)
+  const [isThemeOpen, setIsThemeOpen] = useState(false)
+  const themeButtonRef = useRef<HTMLButtonElement>(null)
+  const themeDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isThemeOpen) return
+    const handleMouseDown = (e: MouseEvent): void => {
+      if (
+        themeButtonRef.current?.contains(e.target as Node) ||
+        themeDropdownRef.current?.contains(e.target as Node)
+      ) return
+      setIsThemeOpen(false)
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [isThemeOpen])
 
   const handleExportFile = () => {
     const { nodes, edges } = useStore.getState()
@@ -81,7 +99,37 @@ export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): Re
           title="Load canvas from JSON"
           onClick={handleLoadJson}
         >↑</button>
-        <button className="topbar__btn" aria-label="Theme picker" title="Theme picker" disabled>◑</button>
+        <div className="topbar__theme-picker">
+          <button
+            ref={themeButtonRef}
+            className={`topbar__btn${isThemeOpen ? ' topbar__btn--active' : ''}`}
+            aria-label={`Theme: ${theme === 'adaptive' ? 'Adaptive' : 'Dark'}. Click to change`}
+            aria-haspopup="listbox"
+            aria-expanded={isThemeOpen}
+            title="Theme picker"
+            onClick={() => setIsThemeOpen(o => !o)}
+          >◑</button>
+          {isThemeOpen && (
+            <div
+              ref={themeDropdownRef}
+              role="listbox"
+              aria-label="Select theme"
+              className="topbar__theme-dropdown"
+            >
+              {(['dark', 'adaptive'] as const).map(t => (
+                <button
+                  key={t}
+                  role="option"
+                  aria-selected={theme === t}
+                  className={`topbar__theme-option${theme === t ? ' topbar__theme-option--active' : ''}`}
+                  onClick={() => { onThemeChange(t); setIsThemeOpen(false) }}
+                >
+                  {t === 'dark' ? '◑ Dark' : '◑ Adaptive'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button className="topbar__btn" aria-label="Settings" title="Settings" disabled>⚙</button>
       </div>
     </header>

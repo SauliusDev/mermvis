@@ -4,13 +4,40 @@
  * when VS Code fires a theme-change event.
  *
  * Full implementation: Story 12.3 (adaptive-theme).
- * This stub defines the remapping pattern for future reference.
  */
 :root[data-theme="vscode-adaptive"] {
-  --mv-canvas-bg: var(--vscode-editor-background);
-  --mv-bg-surface: var(--vscode-editorGroupHeader-tabsBackground);
+  /* === Existing (keep as-is) === */
+  --mv-canvas-bg:    var(--vscode-editor-background);
+  --mv-bg-surface:   var(--vscode-editorGroupHeader-tabsBackground);
   --mv-text-primary: var(--vscode-editor-foreground);
   --mv-text-secondary: var(--vscode-descriptionForeground);
-  --mv-accent: var(--vscode-focusBorder);
-  --mv-border: var(--vscode-panel-border);
+  --mv-accent:       var(--vscode-focusBorder);
+  --mv-border:       var(--vscode-panel-border);
+
+  /* === Add: remaining background hierarchy === */
+  --mv-bg-deep:      var(--vscode-editor-background);
+  --mv-bg-elevated:  var(--vscode-editorWidget-background);
+  --mv-bg-overlay:   var(--vscode-input-background);
+  --mv-bg-hover:     var(--vscode-list-hoverBackground);
+
+  /* === Add: text hierarchy === */
+  --mv-text-bright:  var(--vscode-foreground);
+  --mv-text-dim:     var(--vscode-disabledForeground);
+
+  /* === Add: accent derivations === */
+  --mv-accent-dim:   color-mix(in srgb, var(--vscode-focusBorder) 15%, transparent);
+  --mv-accent-mid:   color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+
+  /* === Add: borders === */
+  --mv-border-light: var(--vscode-widget-border, var(--vscode-panel-border));
+  --mv-border-focus: var(--vscode-focusBorder);
+
+  /* === Add: node colors (ensures text readability in light themes) === */
+  --mv-node-fill:   var(--vscode-editor-inactiveSelectionBackground, var(--vscode-editorWidget-background));
+  --mv-node-stroke: var(--vscode-panel-border);
+  --mv-node-text:   var(--vscode-editor-foreground);
+
+  /* === Add: edge and subgraph === */
+  --mv-edge-color:       var(--vscode-panel-border);
+  --mv-subgraph-stroke:  var(--vscode-panel-border);
 }
