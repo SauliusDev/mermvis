@@ -147,7 +147,7 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
         break
       }
       case 'EXPORT': {
-        const { content, subtype } = msg.payload
+        const { content, format, subtype } = msg.payload
         if (subtype === 'clipboard') {
           vscode.env.clipboard.writeText(content).then(
             undefined,
@@ -159,10 +159,13 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
           )
         } else {
           // subtype === 'file'
+          const filters = format === 'json'
+            ? { 'JSON': ['json'] }
+            : { 'Mermaid': ['mmd'] }
           vscode.window.showSaveDialog({
             defaultUri: document.uri,
-            filters: { 'Mermaid': ['mmd'] },
-            saveLabel: 'Export',
+            filters,
+            saveLabel: 'Save',
           }).then(
             (uri) => {
               if (!uri) return  // user cancelled — no error
@@ -182,6 +185,48 @@ export class MermvisEditorProvider implements vscode.CustomTextEditorProvider {
             }
           )
         }
+        break
+      }
+      case 'IMPORT_JSON': {
+        vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: { 'JSON': ['json'] },
+          openLabel: 'Load',
+        }).then(
+          (uris) => {
+            if (!uris || uris.length === 0) return  // user cancelled
+            vscode.workspace.fs.readFile(uris[0]).then(
+              (bytes) => {
+                const content = new TextDecoder().decode(bytes)
+                try {
+                  JSON.parse(content)
+                } catch {
+                  vscode.window.showErrorMessage(
+                    'Mermvis: Invalid JSON file — could not parse as JSON'
+                  )
+                  return
+                }
+                const loadJsonMsg: HostToWebviewMessage = {
+                  type: 'LOAD_JSON',
+                  payload: { content },
+                }
+                webviewPanel.webview.postMessage(loadJsonMsg)
+              },
+              (err: unknown) => {
+                vscode.window.showErrorMessage(
+                  `Mermvis: Failed to read JSON file — ${String(err)}`
+                )
+              }
+            )
+          },
+          (err: unknown) => {
+            MermvisEditorProvider.outputChannel?.appendLine(
+              `[ERROR] Open dialog failed: ${String(err)}`
+            )
+          }
+        )
         break
       }
       default: {

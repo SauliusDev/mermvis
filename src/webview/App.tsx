@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { sendToHost, onHostMessage } from './vscode'
+import { importCanvasFromJson } from './lib/export'
 import type { HostToWebviewMessage, LayoutSidecar } from '../shared/types'
 import { useStore } from './lib/store'
 import { useAutoSave, useManualSave } from './lib/autoSave'
@@ -147,6 +148,15 @@ export default function App(): React.JSX.Element {
             sendToHost({ type: 'LOG', payload: { level: 'error', message: `Auto-save failed: ${msg.payload.error ?? 'unknown error'}` } })
           }
           break
+        case 'LOAD_JSON': {
+          const json = importCanvasFromJson(msg.payload.content)
+          if (!json) {
+            sendToHost({ type: 'LOG', payload: { level: 'error', message: 'Load JSON: invalid canvas state structure' } })
+            break
+          }
+          useStore.getState().importFromJson(json)
+          break
+        }
         default: {
           const _exhaustive: never = msg
           break

@@ -237,4 +237,193 @@ describe('MermvisEditorProvider', () => {
       )
     })
   })
+
+  describe('IMPORT_JSON handler', () => {
+    const fakeContext = {
+      subscriptions: [],
+      extensionUri: vscode.Uri.file('/fake/extension'),
+    } as unknown as vscode.ExtensionContext
+
+    const fakeDocument = {
+      uri: vscode.Uri.file('/test/diagram.mmd'),
+      getText: vi.fn(() => 'flowchart TD\n  A[Test]'),
+      lineCount: 2,
+    } as unknown as vscode.TextDocument
+
+    let capturedWebviewMessageHandler: ((msg: WebviewToHostMessage) => void) | undefined
+    let postMessageSpy: ReturnType<typeof vi.fn>
+
+    beforeEach(() => {
+      capturedWebviewMessageHandler = undefined
+
+      vi.mocked(vscode.workspace.onDidChangeTextDocument).mockImplementation(
+        () => ({ dispose: vi.fn() })
+      )
+
+      vi.mocked(vscode.workspace.applyEdit).mockResolvedValue(true as never)
+
+      vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+        get: vi.fn(() => true),
+      } as unknown as vscode.WorkspaceConfiguration)
+
+      postMessageSpy = vi.fn()
+
+      const fakePanel = {
+        webview: {
+          options: {},
+          html: '',
+          onDidReceiveMessage: vi.fn((cb: (msg: WebviewToHostMessage) => void) => {
+            capturedWebviewMessageHandler = cb
+            return { dispose: vi.fn() }
+          }),
+          postMessage: postMessageSpy,
+        },
+        onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+      }
+
+      const provider = new MermvisEditorProvider(fakeContext)
+      provider.resolveCustomTextEditor(
+        fakeDocument,
+        fakePanel as unknown as vscode.WebviewPanel,
+        { isCancellationRequested: false } as vscode.CancellationToken,
+      )
+    })
+
+    it('IMPORT_JSON: calls showOpenDialog with JSON filter and canSelectMany: false', async () => {
+      vi.mocked(vscode.window.showOpenDialog).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({ type: 'IMPORT_JSON', payload: {} })
+      await Promise.resolve()
+      expect(vscode.window.showOpenDialog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filters: { 'JSON': ['json'] },
+          canSelectMany: false,
+          canSelectFiles: true,
+        })
+      )
+    })
+
+    it('IMPORT_JSON: posts LOAD_JSON to webview when file read succeeds with valid JSON', async () => {
+      const validJson = '{"version":1,"exportedAt":"2026-05-19T00:00:00.000Z","nodes":[],"edges":[],"viewport":{"x":0,"y":0,"zoom":1}}'
+      const fakeUri = vscode.Uri.file('/test/canvas.json')
+      vi.mocked(vscode.window.showOpenDialog).mockResolvedValue([fakeUri] as never)
+      vi.mocked(vscode.workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode(validJson) as never)
+      capturedWebviewMessageHandler!({ type: 'IMPORT_JSON', payload: {} })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(postMessageSpy).toHaveBeenCalledWith({
+        type: 'LOAD_JSON',
+        payload: { content: validJson },
+      })
+    })
+
+    it('IMPORT_JSON: calls showErrorMessage when file content is invalid JSON', async () => {
+      const fakeUri = vscode.Uri.file('/test/bad.json')
+      vi.mocked(vscode.window.showOpenDialog).mockResolvedValue([fakeUri] as never)
+      vi.mocked(vscode.workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode('not json at all') as never)
+      vi.mocked(vscode.window.showErrorMessage).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({ type: 'IMPORT_JSON', payload: {} })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid JSON')
+      )
+      expect(postMessageSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'LOAD_JSON' }))
+    })
+
+    it('IMPORT_JSON: calls showErrorMessage when workspace.fs.readFile rejects', async () => {
+      const fakeUri = vscode.Uri.file('/test/missing.json')
+      vi.mocked(vscode.window.showOpenDialog).mockResolvedValue([fakeUri] as never)
+      vi.mocked(vscode.workspace.fs.readFile).mockRejectedValue(new Error('file not found') as never)
+      vi.mocked(vscode.window.showErrorMessage).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({ type: 'IMPORT_JSON', payload: {} })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to read JSON file')
+      )
+    })
+
+    it('IMPORT_JSON: does not post any message when open dialog returns undefined (cancelled)', async () => {
+      vi.mocked(vscode.window.showOpenDialog).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({ type: 'IMPORT_JSON', payload: {} })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(postMessageSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('EXPORT json format', () => {
+    const fakeContext = {
+      subscriptions: [],
+      extensionUri: vscode.Uri.file('/fake/extension'),
+    } as unknown as vscode.ExtensionContext
+
+    const fakeDocument = {
+      uri: vscode.Uri.file('/test/diagram.mmd'),
+      getText: vi.fn(() => 'flowchart TD\n  A[Test]'),
+      lineCount: 2,
+    } as unknown as vscode.TextDocument
+
+    let capturedWebviewMessageHandler: ((msg: WebviewToHostMessage) => void) | undefined
+
+    beforeEach(() => {
+      capturedWebviewMessageHandler = undefined
+
+      vi.mocked(vscode.workspace.onDidChangeTextDocument).mockImplementation(
+        () => ({ dispose: vi.fn() })
+      )
+
+      vi.mocked(vscode.workspace.applyEdit).mockResolvedValue(true as never)
+
+      vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+        get: vi.fn(() => true),
+      } as unknown as vscode.WorkspaceConfiguration)
+
+      const fakePanel = {
+        webview: {
+          options: {},
+          html: '',
+          onDidReceiveMessage: vi.fn((cb: (msg: WebviewToHostMessage) => void) => {
+            capturedWebviewMessageHandler = cb
+            return { dispose: vi.fn() }
+          }),
+          postMessage: vi.fn(),
+        },
+        onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+      }
+
+      const provider = new MermvisEditorProvider(fakeContext)
+      provider.resolveCustomTextEditor(
+        fakeDocument,
+        fakePanel as unknown as vscode.WebviewPanel,
+        { isCancellationRequested: false } as vscode.CancellationToken,
+      )
+    })
+
+    it('EXPORT json: calls showSaveDialog with JSON filter when format is json', async () => {
+      const fakeUri = vscode.Uri.file('/test/canvas.json')
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(fakeUri as never)
+      vi.mocked(vscode.workspace.fs.writeFile).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: '{}', format: 'json', subtype: 'file' },
+      })
+      await Promise.resolve()
+      expect(vscode.window.showSaveDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ filters: { 'JSON': ['json'] } })
+      )
+    })
+
+    it('EXPORT json: calls writeFile with TextEncoder encoded content for json format', async () => {
+      const fakeUri = vscode.Uri.file('/test/canvas.json')
+      const jsonContent = '{"version":1}'
+      vi.mocked(vscode.window.showSaveDialog).mockResolvedValue(fakeUri as never)
+      vi.mocked(vscode.workspace.fs.writeFile).mockResolvedValue(undefined as never)
+      capturedWebviewMessageHandler!({
+        type: 'EXPORT',
+        payload: { content: jsonContent, format: 'json', subtype: 'file' },
+      })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalledWith(
+        fakeUri,
+        expect.any(Uint8Array)
+      )
+    })
+  })
 })

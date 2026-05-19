@@ -5,9 +5,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 // vi.mock() MUST be at module top level — hoisted by Vitest before imports.
 vi.mock('zustand')
 
-const { mockSendToHost, mockSerialize } = vi.hoisted(() => ({
+const { mockSendToHost, mockSerialize, mockExportCanvasToJson } = vi.hoisted(() => ({
   mockSendToHost: vi.fn(),
   mockSerialize: vi.fn(() => 'flowchart LR\n  A-->B'),
+  mockExportCanvasToJson: vi.fn(() => '{"version":1,"nodes":[],"edges":[],"viewport":{"x":0,"y":0,"zoom":1}}'),
 }))
 
 vi.mock('@/vscode', () => ({
@@ -16,6 +17,10 @@ vi.mock('@/vscode', () => ({
 
 vi.mock('@/lib/serializer', () => ({
   serialize: mockSerialize,
+}))
+
+vi.mock('@/lib/export', () => ({
+  exportCanvasToJson: mockExportCanvasToJson,
 }))
 
 import { useStore } from '@/lib/store'
@@ -35,6 +40,7 @@ beforeEach(() => {
   mockSendToHost.mockClear()
   mockSerialize.mockClear()
   mockSerialize.mockReturnValue('flowchart LR\n  A-->B')
+  mockExportCanvasToJson.mockClear()
 })
 
 describe('TopBar', () => {
@@ -160,5 +166,30 @@ describe('TopBar', () => {
       type: 'EXPORT',
       payload: { content: 'flowchart LR\n  A-->B', format: 'mmd', subtype: 'clipboard' },
     })
+  })
+
+  it('renders Save as JSON button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByRole('button', { name: 'Save as JSON' })).not.toBeNull()
+  })
+
+  it('renders Load JSON button', () => {
+    render(<TopBar {...defaultProps} />)
+    expect(screen.getByRole('button', { name: 'Load JSON' })).not.toBeNull()
+  })
+
+  it('clicking Save as JSON calls sendToHost with EXPORT format json', () => {
+    render(<TopBar {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save as JSON' }))
+    expect(mockSendToHost).toHaveBeenCalledWith({
+      type: 'EXPORT',
+      payload: { content: expect.any(String), format: 'json', subtype: 'file' },
+    })
+  })
+
+  it('clicking Load JSON calls sendToHost with IMPORT_JSON type', () => {
+    render(<TopBar {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Load JSON' }))
+    expect(mockSendToHost).toHaveBeenCalledWith({ type: 'IMPORT_JSON', payload: {} })
   })
 })

@@ -2,6 +2,7 @@ import React from 'react'
 import { useStore } from '@/lib/store'
 import { sendToHost } from '@/vscode'
 import { serialize } from '@/lib/serializer'
+import { exportCanvasToJson } from '@/lib/export'
 
 export type PanelId = 'canvas' | 'code' | 'preview'
 export type PanelVisible = Record<PanelId, boolean>
@@ -24,6 +25,16 @@ export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): Re
     const { nodes, edges } = useStore.getState()
     const content = serialize({ nodes, edges })
     sendToHost({ type: 'EXPORT', payload: { content, format: 'mmd', subtype: 'clipboard' } })
+  }
+
+  const handleSaveJson = () => {
+    const { nodes, edges, viewport } = useStore.getState()
+    const content = exportCanvasToJson(nodes, edges, viewport)
+    sendToHost({ type: 'EXPORT', payload: { content, format: 'json', subtype: 'file' } })
+  }
+
+  const handleLoadJson = () => {
+    sendToHost({ type: 'IMPORT_JSON', payload: {} })
   }
 
   return (
@@ -58,6 +69,18 @@ export default function TopBar({ panelVisible, onTogglePanel }: TopBarProps): Re
           title="Copy syntax to clipboard"
           onClick={handleCopyClipboard}
         >⎘</button>
+        <button
+          className="topbar__btn"
+          aria-label="Save as JSON"
+          title="Save canvas as JSON"
+          onClick={handleSaveJson}
+        >↓</button>
+        <button
+          className="topbar__btn"
+          aria-label="Load JSON"
+          title="Load canvas from JSON"
+          onClick={handleLoadJson}
+        >↑</button>
         <button className="topbar__btn" aria-label="Theme picker" title="Theme picker" disabled>◑</button>
         <button className="topbar__btn" aria-label="Settings" title="Settings" disabled>⚙</button>
       </div>

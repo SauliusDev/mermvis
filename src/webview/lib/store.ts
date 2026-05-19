@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import type { Node, Edge, XYPosition } from '@xyflow/react'
 import type { ParseSuccess } from './parser'
+import type { CanvasJson } from './export'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ interface StoreState {
   undo: () => void
   redo: () => void
   importFromCode: (result: ParseSuccess) => void
+  importFromJson: (json: CanvasJson) => void
 }
 
 // withHistory is called imperatively inside each store action.
@@ -529,6 +531,16 @@ export const useStore = create<StoreState>()((set, get) => ({
     if (isNoOp) return
 
     withHistory(get, set, { nodes: mergedNodes, edges: result.edges })
+  },
+
+  importFromJson: (json) => {
+    const { nodes: currentNodes, edges: currentEdges } = get()
+    if (json.nodes === currentNodes && json.edges === currentEdges) return
+    withHistory(get, set, {
+      nodes: json.nodes,
+      edges: json.edges,
+    })
+    get().requestViewportRestore(json.viewport)
   },
 }))
 

@@ -7,6 +7,7 @@ vi.mock('zustand')
 
 import { useStore, MAX_HISTORY, GRID_SNAP } from './store'
 import type { FlowEdgeData, FlowNodeData } from './store'
+import type { CanvasJson } from './export'
 import { makeEdge } from '@/test/store-helpers'
 
 function makeNode(id: string, overrides: Partial<Node<FlowNodeData>> = {}): Node<FlowNodeData> {
@@ -1031,6 +1032,49 @@ describe('useStore', () => {
       useStore.getState().requestFitView()
       useStore.getState().clearFitViewRequest()
       expect(useStore.getState().fitViewRequested).toBe(false)
+    })
+  })
+
+  describe('importFromJson', () => {
+    function makeCanvasJson(overrides: Partial<CanvasJson> = {}): CanvasJson {
+      return {
+        version: 1,
+        exportedAt: '2026-05-19T00:00:00.000Z',
+        nodes: [],
+        edges: [],
+        viewport: { x: 0, y: 0, zoom: 1 },
+        ...overrides,
+      }
+    }
+
+    it('replaces nodes and edges with the loaded JSON state', () => {
+      useStore.setState({ nodes: [makeNode('old')], edges: [], history: { past: [], future: [] } })
+      const json = makeCanvasJson({
+        nodes: [makeNode('X'), makeNode('Y')],
+        edges: [makeEdge('e1', 'X', 'Y')],
+      })
+      useStore.getState().importFromJson(json)
+      expect(useStore.getState().nodes).toHaveLength(2)
+      expect(useStore.getState().nodes[0].id).toBe('X')
+      expect(useStore.getState().edges).toHaveLength(1)
+    })
+
+    it('creates a single undo-able history entry', () => {
+      useStore.setState({ nodes: [makeNode('old')], edges: [], history: { past: [], future: [] } })
+      const json = makeCanvasJson({ nodes: [makeNode('new')], edges: [] })
+      useStore.getState().importFromJson(json)
+      expect(useStore.getState().history.past).toHaveLength(1)
+      useStore.getState().undo()
+      expect(useStore.getState().nodes).toHaveLength(1)
+      expect(useStore.getState().nodes[0].id).toBe('old')
+    })
+
+    it('calls requestViewportRestore with the loaded viewport', () => {
+      useStore.setState({ nodes: [], edges: [], viewportToRestore: null, history: { past: [], future: [] } })
+      const viewport = { x: -50, y: 20, zoom: 1.5 }
+      const json = makeCanvasJson({ nodes: [makeNode('A')], edges: [], viewport })
+      useStore.getState().importFromJson(json)
+      expect(useStore.getState().viewportToRestore).toEqual(viewport)
     })
   })
 })

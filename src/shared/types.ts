@@ -13,6 +13,7 @@ export type HostToWebviewMessage =
   | { type: 'THEME_CHANGED'; payload: ThemePayload }
   | { type: 'EXTERNAL_FILE_CHANGE'; payload: ExternalFileChangePayload }
   | { type: 'SAVE_RESULT'; payload: SaveResultPayload }
+  | { type: 'LOAD_JSON'; payload: LoadJsonPayload }
 
 export interface LoadPayload {
   content: string            // raw .mmd file text
@@ -34,12 +35,17 @@ export interface SaveResultPayload {
   error?: string
 }
 
+export interface LoadJsonPayload {
+  content: string  // raw JSON string; already validated parseable by host
+}
+
 // ─── Webview → Host ──────────────────────────────────────────────────────────
 
 export type WebviewToHostMessage =
   | { type: 'SAVE'; payload: SavePayload }
   | { type: 'READY'; payload: Record<string, never> }
   | { type: 'EXPORT'; payload: ExportPayload }
+  | { type: 'IMPORT_JSON'; payload: Record<string, never> }
   | { type: 'LOG'; payload: LogPayload }
 
 export interface SavePayload {
@@ -49,7 +55,7 @@ export interface SavePayload {
 
 export interface ExportPayload {
   content: string
-  format: 'mmd'
+  format: 'mmd' | 'json'
   subtype: 'file' | 'clipboard'
 }
 
